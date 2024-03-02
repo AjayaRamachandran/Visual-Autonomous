@@ -72,7 +72,33 @@ addPTButton = gui.Button(
     color=[100, 120, 100],
     text="Add Passthrough Point",
     x=1175,
-    y=220,
+    y=200,
+    scale=1,
+    fontSize=26
+    )
+
+addTurnButton = gui.Button(
+    name="turning_button",
+    width=510,
+    height=60,
+    cornerRadius = 15,
+    color=[100, 120, 100],
+    text="Add Turning Point",
+    x=1175,
+    y=270,
+    scale=1,
+    fontSize=26
+    )
+
+addReflexButton = gui.Button(
+    name="reflex_button",
+    width=510,
+    height=60,
+    cornerRadius = 15,
+    color=[100, 120, 100],
+    text="Add Reflex Point",
+    x=1175,
+    y=340,
     scale=1,
     fontSize=26
     )
@@ -82,6 +108,11 @@ addPTButton = gui.Button(
 points = [
     [[0.1,0.1],[0.2,0.2],[0.3,0.3]],
     [[0.2,0.1],[0.3,0.2],[0.4,0.3]]
+]
+
+pointTypes = [
+    "reflex",
+    "passthrough"
 ]
 
 ###### FUNCTIONS ######
@@ -120,6 +151,7 @@ while running:
     skillsButton.draw(screen, mode=int(mode=="skills"))
     autonButton.draw(screen, mode=int(mode=="auton"))
     addPTButton.draw(screen)
+    addTurnButton.draw(screen)
 
     ### Draws Curves ###
     for index, triple in enumerate(points):
@@ -148,7 +180,7 @@ while running:
                     triple[2][0] += convertCoords(pygame.mouse.get_pos(), "b")[0] - dot[0] # changes both handles to stay locked to the center point
                     triple[2][1] += convertCoords(pygame.mouse.get_pos(), "b")[1] - dot[1]
 
-                if (dotIndex == 0 or dotIndex == 2) and not index == 0: #checks to see if the point selected is an in-handle, if so adjust out-handle to be on opposite side of point
+                if (dotIndex == 0 or dotIndex == 2) and not index == 0 and pointTypes[index] == "passthrough": # checks to see if the point selected is an in-handle, if so adjust out-handle to be on opposite side of point
                     if dotIndex == 0:
                         outHandleLength = dist(triple[1], triple[2]) # gets distance between point and out handle
                         outHandleDirection = dir(triple[0], triple[1]) # gets the direction that the out handle needs to be facing
@@ -164,17 +196,26 @@ while running:
         handle1 = tuple(convertCoords(triple[0], "f"))
         midpoint = tuple(convertCoords(triple[1], "f"))
         handle2 = tuple(convertCoords(triple[2], "f"))
-
+        
         if not index == 0:
             pygame.draw.aaline(screen, [255, 255, 255], handle1, midpoint)
         pygame.draw.aaline(screen, [255, 255, 255], midpoint, handle2)
+
         if not index == 0:
-            pygame.draw.circle(screen, [255, 255, 0], handle1, 5)
+            if pointTypes[index] == "passthrough": # makes the in handle yellow if it is passthrough point, green if it is turning
+                pygame.draw.circle(screen, [255, 255, 0], handle1, 5)
+            elif pointTypes[index] == "turning":
+                pygame.draw.circle(screen, [0, 255, 0], handle1, 5)
+
         if not index == 0:
             pygame.draw.circle(screen, [255, 255, 255], midpoint, 5)
         else:
             pygame.draw.circle(screen, [255, 0, 0], midpoint, 5)
-        pygame.draw.circle(screen, [255, 255, 0], handle2, 5)
+
+        if pointTypes[index] == "passthrough": # makes the out handle yellow if it is passthrough point, red if it is turning
+            pygame.draw.circle(screen, [255, 255, 0], handle2, 5)
+        elif pointTypes[index] == "turning":
+            pygame.draw.circle(screen, [255, 0, 0], handle2, 5)
 
     if skillsButton.isClicked():
         mode = "skills"
@@ -183,6 +224,11 @@ while running:
     elif addPTButton.isClicked():
         if not points[len(points) - 1] == [[0.4,0.4],[0.5,0.5],[0.6,0.6]]:
             points.append([[0.4,0.4],[0.5,0.5],[0.6,0.6]])
+            pointTypes.append("passthrough")
+    elif addTurnButton.isClicked():
+        if not points[len(points) - 1] == [[0.4,0.4],[0.5,0.5],[0.6,0.6]]:
+            points.append([[0.4,0.4],[0.5,0.5],[0.6,0.6]])
+            pointTypes.append("turning")
 
     for event in pygame.event.get(): # checks if program is quit, if so stops the code
         if event.type == pygame.QUIT:
