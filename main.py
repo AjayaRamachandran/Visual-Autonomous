@@ -64,6 +64,19 @@ autonButton = gui.Button(
     fontSize=26
     )
 
+addPTButton = gui.Button(
+    name="passthrough_button",
+    width=510,
+    height=60,
+    cornerRadius = 15,
+    color=[100, 120, 100],
+    text="Add Passthrough Point",
+    x=1175,
+    y=220,
+    scale=1,
+    fontSize=26
+    )
+
 ###### POINT MANAGEMENT ######
 
 points = [
@@ -72,6 +85,12 @@ points = [
 ]
 
 ###### FUNCTIONS ######
+def dist(point1, point2): # calculates the distance between two points
+    return sqrt((point2[0] - point1[0])**2 + (point2[1] - point1[1])**2)
+
+def dir(point1, point2): # calculates the direction between one point and another
+    return atan2((point2[1] - point1[1]), (point2[0] - point1[0]))
+
 def convertCoords(input, direction):
     if direction == "f":
         x, y = input[0] * 900 + 10, input[1] * 900 + 10
@@ -85,10 +104,8 @@ def detectClosestPoint():
 
     for index, triple in enumerate(points):
         for selectIndex, point in enumerate(triple):
-            if sqrt((point[0] - mousePos[0])**2 + (point[1] - mousePos[1])**2) < 0.01:
+            if dist(point, mousePos) < 0.01:
                 pointSelected = [index, selectIndex]
-                #print(pointSelected)
-
 
 ###### MAINLOOP ######
 
@@ -102,6 +119,7 @@ while running:
 
     skillsButton.draw(screen, mode=int(mode=="skills"))
     autonButton.draw(screen, mode=int(mode=="auton"))
+    addPTButton.draw(screen)
 
     ### Draws Curves ###
     for index, triple in enumerate(points):
@@ -124,11 +142,24 @@ while running:
         for dotIndex, dot in enumerate(triple):
             if pointSelected == [index, dotIndex]:
                 if dotIndex == 1: #checks to see if the point selected is not a handle
-                    triple[dotIndex - 1][0] += convertCoords(pygame.mouse.get_pos(), "b")[0] - dot[0] # changes both handles to stay locked to the center point
-                    triple[dotIndex - 1][1] += convertCoords(pygame.mouse.get_pos(), "b")[1] - dot[1]
+                    triple[0][0] += convertCoords(pygame.mouse.get_pos(), "b")[0] - dot[0] # changes both handles to stay locked to the center point
+                    triple[0][1] += convertCoords(pygame.mouse.get_pos(), "b")[1] - dot[1]
 
-                    triple[dotIndex + 1][0] += convertCoords(pygame.mouse.get_pos(), "b")[0] - dot[0] # changes both handles to stay locked to the center point
-                    triple[dotIndex + 1][1] += convertCoords(pygame.mouse.get_pos(), "b")[1] - dot[1]
+                    triple[2][0] += convertCoords(pygame.mouse.get_pos(), "b")[0] - dot[0] # changes both handles to stay locked to the center point
+                    triple[2][1] += convertCoords(pygame.mouse.get_pos(), "b")[1] - dot[1]
+
+                if (dotIndex == 0 or dotIndex == 2) and not index == 0: #checks to see if the point selected is an in-handle, if so adjust out-handle to be on opposite side of point
+                    if dotIndex == 0:
+                        outHandleLength = dist(triple[1], triple[2]) # gets distance between point and out handle
+                        outHandleDirection = dir(triple[0], triple[1]) # gets the direction that the out handle needs to be facing
+                        triple[2][0] = triple[1][0] + outHandleLength * cos(outHandleDirection)
+                        triple[2][1] = triple[1][1] + outHandleLength * sin(outHandleDirection)
+                    else:
+                        inHandleLength = dist(triple[1], triple[0]) # gets distance between point and in handle
+                        inHandleDirection = dir(triple[2], triple[1]) # gets the direction that the in handle needs to be facing
+                        triple[0][0] = triple[1][0] + inHandleLength * cos(inHandleDirection)
+                        triple[0][1] = triple[1][1] + inHandleLength * sin(inHandleDirection)
+
                 dot[0], dot[1] = convertCoords(pygame.mouse.get_pos(), "b")
         handle1 = tuple(convertCoords(triple[0], "f"))
         midpoint = tuple(convertCoords(triple[1], "f"))
@@ -149,17 +180,18 @@ while running:
         mode = "skills"
     elif autonButton.isClicked():
         mode = "auton"
+    elif addPTButton.isClicked():
+        if not points[len(points) - 1] == [[0.4,0.4],[0.5,0.5],[0.6,0.6]]:
+            points.append([[0.4,0.4],[0.5,0.5],[0.6,0.6]])
 
     for event in pygame.event.get(): # checks if program is quit, if so stops the code
         if event.type == pygame.QUIT:
             running = False
 
     if pygame.mouse.get_pressed()[0]:
-        #print("mousedown")
         detectClosestPoint()
     elif not pygame.mouse.get_pressed()[0]:
         pointSelected = [0,0]
-
 
     # runs framerate wait time
     clock.tick(fps)
