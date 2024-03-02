@@ -63,10 +63,18 @@ autonButton = gui.Button(
     fontSize=26
     )
 
+
+###### FUNCTIONS ######
+def convertCoords(input):
+    x, y = input[0] * 900 + 10, input[1] * 900 + 10
+    return x, y
+
 ###### POINT MANAGEMENT ######
 
-
-
+points = [
+    [[0.1,0.1],[0.2,0.2],[0.3,0.3]],
+    [[0.2,0.1],[0.3,0.2],[0.4,0.3]]
+]
 
 
 
@@ -83,6 +91,35 @@ while running:
 
     skillsButton.draw(screen, mode=int(mode=="skills"))
     autonButton.draw(screen, mode=int(mode=="auton"))
+
+    ### Draws Curves ###
+    for index, point in enumerate(points):
+        if not index == len(points) - 1:
+            point1 = points[index][1] # point 1 is the starting point
+            point2 = points[index][2] # point 2 is the first handle (off of the first point)
+            point3 = points[index + 1][0] # point 3 is the second handle (off of the second point)
+            point4 = points[index + 1][1] # point 4 is the ending point
+
+            for t in range(0, 40):
+                tValue = t/39
+                x = point1[0]*(-tValue**3 + 3*tValue**2 - 3*tValue + 1) + point2[0]*(3*tValue**3 - 6*tValue**2 + 3*tValue) + point3[0]*(-3*tValue**3 + 3*tValue**2) + point4[0]*(tValue**3)
+                y = point1[1]*(-tValue**3 + 3*tValue**2 - 3*tValue + 1) + point2[1]*(3*tValue**3 - 6*tValue**2 + 3*tValue) + point3[1]*(-3*tValue**3 + 3*tValue**2) + point4[1]*(tValue**3)
+                blitX, blitY = convertCoords([x, y])
+
+                pygame.draw.circle(screen, [255, 255, 255], [blitX, blitY], 2)
+    
+    ### Draws Points / Handle Points ###
+    for index, point in enumerate(points):
+        handle1 = tuple(convertCoords(point[0]))
+        midpoint = tuple(convertCoords(point[1]))
+        handle2 = tuple(convertCoords(point[2]))
+
+        pygame.draw.aaline(screen, [255, 255, 255], handle1, midpoint)
+        pygame.draw.aaline(screen, [255, 255, 255], midpoint, handle2)
+
+        pygame.draw.circle(screen, [255, 255, 0], handle1, 5)
+        pygame.draw.circle(screen, [255, 255, 255], midpoint, 5)
+        pygame.draw.circle(screen, [255, 255, 0], handle2, 5)
 
     if skillsButton.isClicked():
         mode = "skills"
