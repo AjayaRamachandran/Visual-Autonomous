@@ -30,8 +30,13 @@ match_rect = matchField.get_rect()
 match_rect.centery = 460
 match_rect.centerx = 460
 
+deleteIcon = "DeleteIcon.png"
+delete = pygame.image.load(deleteIcon)
+delete_rect = delete.get_rect()
+
 mode = "skills"
 pointSelected = [0, 0]
+selector = "edit"
 
 ###### INITIALIZE ######
 
@@ -103,16 +108,27 @@ addReflexButton = gui.Button(
     fontSize=26
     )
 
+deleteButton = gui.Button(
+    name="delete_button",
+    width=510,
+    height=60,
+    cornerRadius = 15,
+    color=[120, 100, 100],
+    text="Delete Point",
+    x=1175,
+    y=480,
+    scale=1,
+    fontSize=26
+    )
+
 ###### POINT MANAGEMENT ######
 
 points = [
-    [[0.1,0.1],[0.2,0.2],[0.3,0.3]],
-    [[0.2,0.1],[0.3,0.2],[0.4,0.3]]
+    [[0.2,0.2],[0.3,0.3],[0.2,0.2]],
 ]
 
 pointTypes = [
-    "reflex",
-    "passthrough"
+    "reflex"
 ]
 
 ###### FUNCTIONS ######
@@ -133,8 +149,8 @@ def detectClosestPoint():
     global pointSelected
     mousePos = convertCoords(pygame.mouse.get_pos(), "b")
 
-    for index, triple in enumerate(points):
-        for selectIndex, point in enumerate(triple):
+    for index, group in enumerate(points):
+        for selectIndex, point in enumerate(group):
             if dist(point, mousePos) < 0.01:
                 pointSelected = [index, selectIndex]
 
@@ -152,9 +168,11 @@ while running:
     autonButton.draw(screen, mode=int(mode=="auton"))
     addPTButton.draw(screen)
     addTurnButton.draw(screen)
+    addReflexButton.draw(screen)
+    deleteButton.draw(screen)
 
     ### Draws Curves ###
-    for index, triple in enumerate(points):
+    for index, group in enumerate(points):
         if not index == len(points) - 1:
             point1 = points[index][1] # point 1 is the starting point
             point2 = points[index][2] # point 2 is the first handle (off of the first point)
@@ -170,32 +188,40 @@ while running:
                 pygame.draw.circle(screen, [255, 255, 255], [blitX, blitY], 2)
     
     ### Draws Points / Handle Points ###
-    for index, triple in enumerate(points):
-        for dotIndex, dot in enumerate(triple):
+    for index, group in enumerate(points):
+        for dotIndex, dot in enumerate(group):
             if pointSelected == [index, dotIndex]:
-                if dotIndex == 1: #checks to see if the point selected is not a handle
-                    triple[0][0] += convertCoords(pygame.mouse.get_pos(), "b")[0] - dot[0] # changes both handles to stay locked to the center point
-                    triple[0][1] += convertCoords(pygame.mouse.get_pos(), "b")[1] - dot[1]
+                if selector == "edit":
+                    if dotIndex == 1: #checks to see if the point selected is not a handle
+                        group[0][0] += convertCoords(pygame.mouse.get_pos(), "b")[0] - dot[0] # changes both handles to stay locked to the center point
+                        group[0][1] += convertCoords(pygame.mouse.get_pos(), "b")[1] - dot[1]
 
-                    triple[2][0] += convertCoords(pygame.mouse.get_pos(), "b")[0] - dot[0] # changes both handles to stay locked to the center point
-                    triple[2][1] += convertCoords(pygame.mouse.get_pos(), "b")[1] - dot[1]
+                        group[2][0] += convertCoords(pygame.mouse.get_pos(), "b")[0] - dot[0] # changes both handles to stay locked to the center point
+                        group[2][1] += convertCoords(pygame.mouse.get_pos(), "b")[1] - dot[1]
 
-                if (dotIndex == 0 or dotIndex == 2) and not index == 0 and pointTypes[index] == "passthrough": # checks to see if the point selected is an in-handle, if so adjust out-handle to be on opposite side of point
-                    if dotIndex == 0:
-                        outHandleLength = dist(triple[1], triple[2]) # gets distance between point and out handle
-                        outHandleDirection = dir(triple[0], triple[1]) # gets the direction that the out handle needs to be facing
-                        triple[2][0] = triple[1][0] + outHandleLength * cos(outHandleDirection)
-                        triple[2][1] = triple[1][1] + outHandleLength * sin(outHandleDirection)
+                    if (dotIndex == 0 or dotIndex == 2) and not index == 0 and pointTypes[index] == "passthrough": # checks to see if the point selected is an in-handle, if so adjust out-handle to be on opposite side of point
+                        if dotIndex == 0:
+                            outHandleLength = dist(group[1], group[2]) # gets distance between point and out handle
+                            outHandleDirection = dir(group[0], group[1]) # gets the direction that the out handle needs to be facing
+                            group[2][0] = group[1][0] + outHandleLength * cos(outHandleDirection)
+                            group[2][1] = group[1][1] + outHandleLength * sin(outHandleDirection)
+                        else:
+                            inHandleLength = dist(group[1], group[0]) # gets distance between point and in handle
+                            inHandleDirection = dir(group[2], group[1]) # gets the direction that the in handle needs to be facing
+                            group[0][0] = group[1][0] + inHandleLength * cos(inHandleDirection)
+                            group[0][1] = group[1][1] + inHandleLength * sin(inHandleDirection)
+                        dot[0], dot[1] = convertCoords(pygame.mouse.get_pos(), "b")
+                    elif (dotIndex == 0 or dotIndex == 2) and not index == 0 and pointTypes[index] == "reflex":
+                        dot[0], dot[1] = convertCoords(pygame.mouse.get_pos(), "b")
+                        if dotIndex == 0:
+                            group[2][0], group[2][1] = dot[0], dot[1]
+                        elif dotIndex == 2:
+                            group[0][0], group[0][1] = dot[0], dot[1]
                     else:
-                        inHandleLength = dist(triple[1], triple[0]) # gets distance between point and in handle
-                        inHandleDirection = dir(triple[2], triple[1]) # gets the direction that the in handle needs to be facing
-                        triple[0][0] = triple[1][0] + inHandleLength * cos(inHandleDirection)
-                        triple[0][1] = triple[1][1] + inHandleLength * sin(inHandleDirection)
-
-                dot[0], dot[1] = convertCoords(pygame.mouse.get_pos(), "b")
-        handle1 = tuple(convertCoords(triple[0], "f"))
-        midpoint = tuple(convertCoords(triple[1], "f"))
-        handle2 = tuple(convertCoords(triple[2], "f"))
+                        dot[0], dot[1] = convertCoords(pygame.mouse.get_pos(), "b")
+        handle1 = tuple(convertCoords(group[0], "f"))
+        midpoint = tuple(convertCoords(group[1], "f"))
+        handle2 = tuple(convertCoords(group[2], "f"))
         
         if not index == 0:
             pygame.draw.aaline(screen, [255, 255, 255], handle1, midpoint)
@@ -207,28 +233,49 @@ while running:
             elif pointTypes[index] == "turning":
                 pygame.draw.circle(screen, [0, 255, 0], handle1, 5)
 
-        if not index == 0:
-            pygame.draw.circle(screen, [255, 255, 255], midpoint, 5)
-        else:
-            pygame.draw.circle(screen, [255, 0, 0], midpoint, 5)
+
+        pygame.draw.circle(screen, [255, 255, 255], midpoint, 5)
 
         if pointTypes[index] == "passthrough": # makes the out handle yellow if it is passthrough point, red if it is turning
             pygame.draw.circle(screen, [255, 255, 0], handle2, 5)
         elif pointTypes[index] == "turning":
             pygame.draw.circle(screen, [255, 0, 0], handle2, 5)
+        elif pointTypes[index] == "reflex":
+            pygame.draw.circle(screen, [0, 0, 255], handle2, 5)
 
     if skillsButton.isClicked():
         mode = "skills"
     elif autonButton.isClicked():
         mode = "auton"
     elif addPTButton.isClicked():
-        if not points[len(points) - 1] == [[0.4,0.4],[0.5,0.5],[0.6,0.6]]:
+        if not points[len(points) - 1][0] == [0.4,0.4]:
             points.append([[0.4,0.4],[0.5,0.5],[0.6,0.6]])
             pointTypes.append("passthrough")
     elif addTurnButton.isClicked():
-        if not points[len(points) - 1] == [[0.4,0.4],[0.5,0.5],[0.6,0.6]]:
+        if not points[len(points) - 1][0] == [0.4,0.4]:
             points.append([[0.4,0.4],[0.5,0.5],[0.6,0.6]])
             pointTypes.append("turning")
+    elif addReflexButton.isClicked():
+        if not points[len(points) - 1][0] == [0.4,0.4]:
+            points.append([[0.4,0.4],[0.5,0.5],[0.4,0.4]])
+            pointTypes.append("reflex")
+    elif deleteButton.isClicked():
+        selector = "delete"
+    
+    for index, group in enumerate(points):
+        for dotIndex, dot in enumerate(group):
+            if pointSelected == [index, dotIndex]:
+                if selector == "delete" and not index == 0:
+                    points.pop(index)
+                    pointTypes.pop(index)
+                    selector = "edit"
+                    pointSelected = [0,0]
+                    print(len(points))
+
+    if selector == "delete":
+        delete_rect.centery = pygame.mouse.get_pos()[1]
+        delete_rect.centerx = pygame.mouse.get_pos()[0]
+        screen.blit(delete, delete_rect)
 
     for event in pygame.event.get(): # checks if program is quit, if so stops the code
         if event.type == pygame.QUIT:
