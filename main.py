@@ -37,6 +37,7 @@ delete_rect = delete.get_rect()
 mode = "skills"
 pointSelected = [0, 0]
 selector = "edit"
+initialReverse = False
 
 ###### INITIALIZE ######
 
@@ -121,6 +122,32 @@ deleteButton = gui.Button(
     fontSize=26
     )
 
+startInReverse = gui.Button(
+    name="reversing_button",
+    width=250,
+    height=60,
+    cornerRadius = 15,
+    color=[35, 35, 43],
+    text="Start in Reverse",
+    x=1045,
+    y=875,
+    scale=1,
+    fontSize=26
+    )
+
+startForward = gui.Button(
+    name="forward_button",
+    width=250,
+    height=60,
+    cornerRadius = 15,
+    color=[35, 35, 43],
+    text="Start Forward",
+    x=1305,
+    y=875,
+    scale=1,
+    fontSize=26
+    )
+
 ###### POINT MANAGEMENT ######
 
 points = [
@@ -170,8 +197,11 @@ while running:
     addTurnButton.draw(screen)
     addReflexButton.draw(screen)
     deleteButton.draw(screen)
+    startInReverse.draw(screen, mode=int(initialReverse))
+    startForward.draw(screen, mode=int(not initialReverse))
 
     ### Draws Curves ###
+    reverse = initialReverse
     for index, group in enumerate(points):
         if not index == len(points) - 1:
             point1 = points[index][1] # point 1 is the starting point
@@ -184,9 +214,14 @@ while running:
                 x = point1[0]*(-tValue**3 + 3*tValue**2 - 3*tValue + 1) + point2[0]*(3*tValue**3 - 6*tValue**2 + 3*tValue) + point3[0]*(-3*tValue**3 + 3*tValue**2) + point4[0]*(tValue**3)
                 y = point1[1]*(-tValue**3 + 3*tValue**2 - 3*tValue + 1) + point2[1]*(3*tValue**3 - 6*tValue**2 + 3*tValue) + point3[1]*(-3*tValue**3 + 3*tValue**2) + point4[1]*(tValue**3)
                 blitX, blitY = convertCoords([x, y], "f")
+                if reverse:
+                    pygame.draw.circle(screen, [80, 80, 80], [blitX, blitY], 2)
+                else:
+                    pygame.draw.circle(screen, [255, 255, 255], [blitX, blitY], 2)
 
-                pygame.draw.circle(screen, [255, 255, 255], [blitX, blitY], 2)
-    
+            if pointTypes[index + 1] == "reflex":
+                reverse = not reverse
+
     ### Draws Points / Handle Points ###
     for index, group in enumerate(points):
         for dotIndex, dot in enumerate(group):
@@ -247,6 +282,10 @@ while running:
         mode = "skills"
     elif autonButton.isClicked():
         mode = "auton"
+    elif startInReverse.isClicked():
+        initialReverse = True
+    elif startForward.isClicked():
+        initialReverse = False
     elif addPTButton.isClicked():
         if not points[len(points) - 1][0] == [0.4,0.4]:
             points.append([[0.4,0.4],[0.5,0.5],[0.6,0.6]])
