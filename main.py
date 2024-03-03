@@ -34,6 +34,9 @@ deleteIcon = "DeleteIcon.png"
 delete = pygame.image.load(deleteIcon)
 delete_rect = delete.get_rect()
 
+icon = pygame.image.load("Icon.png")
+pygame.display.set_icon(icon)
+
 mode = "skills"
 pointSelected = [0, 0]
 selector = "edit"
@@ -151,7 +154,7 @@ startForward = gui.Button(
 ###### POINT MANAGEMENT ######
 
 points = [
-    [[0.2,0.2],[0.3,0.3],[0.2,0.2]],
+    [[0.2,0.2],[0.3,0.3],[0.2,0.2]]
 ]
 
 pointTypes = [
