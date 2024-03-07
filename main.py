@@ -6,6 +6,7 @@ import time
 from math import *
 import numpy as np
 import copy
+import bisect
 
 import gui
 ###### SETUP ######
@@ -15,6 +16,8 @@ windowSize = (1440, 920)
 
 pygame.display.set_caption("Visual Autonomous Path Editor") # Sets title of window
 screen = pygame.display.set_mode(windowSize) # Sets the dimensions of the window to the windowSize
+icon = pygame.image.load("AppIcon.png")
+pygame.display.set_icon(icon)
 
 font = pygame.font.Font(None, 36)
 
@@ -34,13 +37,13 @@ deleteIcon = "DeleteIcon.png"
 delete = pygame.image.load(deleteIcon)
 delete_rect = delete.get_rect()
 
-icon = pygame.image.load("Icon.png")
-pygame.display.set_icon(icon)
-
 mode = "skills"
 pointSelected = [0, 0]
 selector = "edit"
 initialReverse = False
+
+POINTSPACING = 0.01
+SAMPLINGRESOLUTION = 200
 
 ###### INITIALIZE ######
 
@@ -168,6 +171,12 @@ def dist(point1, point2): # calculates the distance between two points
 def dir(point1, point2): # calculates the direction between one point and another
     return atan2((point2[1] - point1[1]), (point2[0] - point1[0]))
 
+def lookUpTable(table, inputY):
+    leftPoint = [bisect.bisect_left(table, inputY) - 1, table[bisect.bisect_left(table, inputY) - 1]]
+    rightPoint = [bisect.bisect_left(table, inputY), table[bisect.bisect_left(table, inputY)]]
+
+    return (((inputY - leftPoint[1]) / (rightPoint[1] - leftPoint[1])) + leftPoint[0]) / len(table)
+
 def convertCoords(input, direction):
     if direction == "f":
         x, y = input[0] * 900 + 10, input[1] * 900 + 10
@@ -212,8 +221,30 @@ while running:
             point3 = points[index + 1][0] # point 3 is the second handle (off of the second point)
             point4 = points[index + 1][1] # point 4 is the ending point
 
-            for t in range(0, 40):
-                tValue = t/39
+            prevPoint = [point1[0], point1[1]]
+            distances = []
+            for t in range(0, SAMPLINGRESOLUTION):
+                tValue = t/(SAMPLINGRESOLUTION - 1)
+                x = point1[0]*(-tValue**3 + 3*tValue**2 - 3*tValue + 1) + point2[0]*(3*tValue**3 - 6*tValue**2 + 3*tValue) + point3[0]*(-3*tValue**3 + 3*tValue**2) + point4[0]*(tValue**3)
+                y = point1[1]*(-tValue**3 + 3*tValue**2 - 3*tValue + 1) + point2[1]*(3*tValue**3 - 6*tValue**2 + 3*tValue) + point3[1]*(-3*tValue**3 + 3*tValue**2) + point4[1]*(tValue**3)
+
+                distToLastPoint = dist([x, y], prevPoint) # calculates the distance between current sample point and the last
+                distances.append(distToLastPoint)
+                prevPoint = [x, y]
+
+            arcLength = sum(distances)
+            cumulativeSum = 0
+            for iter in range(len(distances)):
+                distances[iter] += cumulativeSum
+                cumulativeSum = distances[iter]
+            
+            numSamplePoints = round(arcLength / POINTSPACING)
+
+            equallySpacedPoints = []
+            for iter in range(numSamplePoints):
+                equallySpacedPoints.append(lookUpTable(distances, arcLength * iter / numSamplePoints))
+
+            for tValue in equallySpacedPoints:
                 x = point1[0]*(-tValue**3 + 3*tValue**2 - 3*tValue + 1) + point2[0]*(3*tValue**3 - 6*tValue**2 + 3*tValue) + point3[0]*(-3*tValue**3 + 3*tValue**2) + point4[0]*(tValue**3)
                 y = point1[1]*(-tValue**3 + 3*tValue**2 - 3*tValue + 1) + point2[1]*(3*tValue**3 - 6*tValue**2 + 3*tValue) + point3[1]*(-3*tValue**3 + 3*tValue**2) + point4[1]*(tValue**3)
                 blitX, blitY = convertCoords([x, y], "f")
@@ -270,7 +301,6 @@ while running:
                 pygame.draw.circle(screen, [255, 255, 0], handle1, 5)
             elif pointTypes[index] == "turning":
                 pygame.draw.circle(screen, [0, 255, 0], handle1, 5)
-
 
         pygame.draw.circle(screen, [255, 255, 255], midpoint, 5)
 
