@@ -216,6 +216,10 @@ def generateOutput():
     for index1, curve in enumerate(totalCurve):
         for index2, point in enumerate(curve):
             output.write("{" + f"{point[0]}, {point[1]}" + "}")
+            if index2 == len(curve) - 1 and index1 == len(totalCurve) - 1:
+                output.write("")
+            else:
+                output.write(",")
         lengths.append(len(curve))
     output.write("};\n")
 
