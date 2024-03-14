@@ -13,8 +13,6 @@ import inout as io
 
 ###### SETUP ######
 
-output = open("output.txt", "w")
-
 windowSize = (1440, 920)
 
 pygame.display.set_caption("Visual Autonomous Path Editor") # Sets title of window
@@ -44,8 +42,9 @@ mode = "skills"
 pointSelected = [0, 0]
 selector = "edit"
 initialReverse = False
+totalCurve = []
 
-POINTSPACING = 0.01
+POINTSPACING = 0.00694444444
 SAMPLINGRESOLUTION = 200
 
 ###### INITIALIZE ######
@@ -157,6 +156,19 @@ startForward = gui.Button(
     fontSize=26
     )
 
+export = gui.Button(
+    name="export_button",
+    width=510,
+    height=60,
+    cornerRadius = 15,
+    color=[148, 132, 84],
+    text="Export",
+    x=1175,
+    y=620,
+    scale=1,
+    fontSize=26
+    )
+
 ###### POINT MANAGEMENT ######
 
 points = [
@@ -197,6 +209,25 @@ def detectClosestPoint():
             if dist(point, mousePos) < 0.01:
                 pointSelected = [index, selectIndex]
 
+def generateOutput():
+    output = open("output.txt", "w")
+    output.write("double coordinates[][2] = {")
+    for index1, curve in enumerate(totalCurve):
+        output.write("{")
+        for index2, point in enumerate(curve):
+            output.write("{" + f"{point[0]}, {point[1]}" + "}")
+            if index2 != len(curve) - 1:
+                output.write(",")
+            else:
+                output.write("")
+        output.write("}")
+        if index1 != len(totalCurve) - 1:
+            output.write(",")
+    output.write("}")
+    output.close()
+    
+    io.showOutput("output.txt")
+
 ###### MAINLOOP ######
 
 running = True # Runs the game loop
@@ -215,9 +246,11 @@ while running:
     deleteButton.draw(screen)
     startInReverse.draw(screen, mode=int(initialReverse))
     startForward.draw(screen, mode=int(not initialReverse))
+    export.draw(screen)
 
     ### Draws Curves ###
     reverse = initialReverse
+    totalCurve = []
     for index, group in enumerate(points):
         if not index == len(points) - 1:
             point1 = points[index][1] # point 1 is the starting point
@@ -248,15 +281,17 @@ while running:
             for iter in range(numSamplePoints):
                 equallySpacedPoints.append(lookUpTable(distances, arcLength * iter / numSamplePoints))
 
+            pointCoords = []
             for tValue in equallySpacedPoints:
                 x = point1[0]*(-tValue**3 + 3*tValue**2 - 3*tValue + 1) + point2[0]*(3*tValue**3 - 6*tValue**2 + 3*tValue) + point3[0]*(-3*tValue**3 + 3*tValue**2) + point4[0]*(tValue**3)
                 y = point1[1]*(-tValue**3 + 3*tValue**2 - 3*tValue + 1) + point2[1]*(3*tValue**3 - 6*tValue**2 + 3*tValue) + point3[1]*(-3*tValue**3 + 3*tValue**2) + point4[1]*(tValue**3)
+                pointCoords.append([x, y])
                 blitX, blitY = convertCoords([x, y], "f")
                 if reverse:
                     pygame.draw.circle(screen, [80, 80, 80], [blitX, blitY], 2)
                 else:
                     pygame.draw.circle(screen, [255, 255, 255], [blitX, blitY], 2)
-
+            totalCurve.append(pointCoords)
             if pointTypes[index + 1] == "reflex":
                 reverse = not reverse
 
@@ -337,7 +372,12 @@ while running:
             pointTypes.append("reflex")
     elif deleteButton.isClicked():
         selector = "delete"
-    
+    elif export.isClicked() and not pressingExport:
+        generateOutput()
+        pressingExport = True
+    if not export.isClicked():
+        pressingExport = False
+
     for index, group in enumerate(points):
         for dotIndex, dot in enumerate(group):
             if pointSelected == [index, dotIndex]:
