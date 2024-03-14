@@ -212,18 +212,24 @@ def detectClosestPoint():
 def generateOutput():
     output = open("output.txt", "w")
     output.write("double coordinates[][2] = {")
+    lengths = []
     for index1, curve in enumerate(totalCurve):
-        output.write("{")
         for index2, point in enumerate(curve):
             output.write("{" + f"{point[0]}, {point[1]}" + "}")
             if index2 != len(curve) - 1:
                 output.write(",")
             else:
                 output.write("")
-        output.write("}")
-        if index1 != len(totalCurve) - 1:
+        lengths.append(len(curve))
+    output.write("}\n")
+
+    output.write("double curveLengths[] = {")
+    for index, length in enumerate(lengths):
+        output.write(f"{length}")
+        if index != len(lengths) - 1:
             output.write(",")
-    output.write("}")
+    output.write("}\n")
+
     output.close()
     
     io.showOutput("output.txt")
