@@ -221,14 +221,14 @@ def generateOutput():
             else:
                 output.write("")
         lengths.append(len(curve))
-    output.write("}\n")
+    output.write("};\n")
 
     output.write("double curveLengths[] = {")
     for index, length in enumerate(lengths):
         output.write(f"{length}")
         if index != len(lengths) - 1:
             output.write(",")
-    output.write("}\n")
+    output.write("};\n")
 
     output.close()
     
