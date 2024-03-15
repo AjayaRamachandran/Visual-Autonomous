@@ -187,33 +187,33 @@ def dist(point1, point2): # calculates the distance between two points
 def dir(point1, point2): # calculates the direction between one point and another
     return atan2((point2[1] - point1[1]), (point2[0] - point1[0]))
 
-def lookUpTable(table, inputY):
+def lookUpTable(table, inputY): # a function that is given a list of values Y with equal spaced X, can give any value of X given Y
     leftPoint = [bisect.bisect_left(table, inputY) - 1, table[bisect.bisect_left(table, inputY) - 1]]
     rightPoint = [bisect.bisect_left(table, inputY), table[bisect.bisect_left(table, inputY)]]
 
     return (((inputY - leftPoint[1]) / (rightPoint[1] - leftPoint[1])) + leftPoint[0]) / len(table)
 
-def convertCoords(input, direction):
+def convertCoords(input, direction): # converts the 0 - 1 UV coords of the field into screen coordinates and vice versa
     if direction == "f":
         x, y = input[0] * 900 + 10, input[1] * 900 + 10
     else:
         x, y = (input[0] - 10) / 900, (input[1] - 10) / 900
     return x, y
 
-def detectClosestPoint():
+def detectClosestPoint(): # function to detect which point on the field is closest to mouse and whether it is eligible for dragging
     global pointSelected
     mousePos = convertCoords(pygame.mouse.get_pos(), "b")
 
     for index, group in enumerate(points):
         for selectIndex, point in enumerate(group):
-            if dist(point, mousePos) < 0.01:
+            if dist(point, mousePos) < 0.01 and pointSelected == [0,0]:
                 pointSelected = [index, selectIndex]
 
-def generateOutput():
+def generateOutput(): # generates a text file that contains the path data
     output = open("output.txt", "w")
     output.write("double coordinates[][2] = {")
     lengths = []
-    for index1, curve in enumerate(totalCurve):
+    for index1, curve in enumerate(totalCurve): # structure of file is a list of points (the waypoints), then a second list which contains the arclengths between the handles
         for index2, point in enumerate(curve):
             output.write("{" + f"{point[0]}, {point[1]}" + "}")
             if index2 == len(curve) - 1 and index1 == len(totalCurve) - 1:
@@ -222,17 +222,14 @@ def generateOutput():
                 output.write(",")
         lengths.append(len(curve))
     output.write("};\n")
-
     output.write("double curveLengths[] = {")
     for index, length in enumerate(lengths):
         output.write(f"{length}")
         if index != len(lengths) - 1:
             output.write(",")
     output.write("};\n")
-
     output.close()
-    
-    io.showOutput("output.txt")
+    io.showOutput("output.txt") # shows the text file to the screen using subprocess
 
 ###### MAINLOOP ######
 
@@ -244,6 +241,7 @@ while running:
     elif mode == "auton":
         screen.blit(matchField, match_rect)
 
+    # draws all the GUI elements to the screen using the GUI library
     skillsButton.draw(screen, mode=int(mode=="skills"))
     autonButton.draw(screen, mode=int(mode=="auton"))
     addPTButton.draw(screen)
@@ -277,18 +275,18 @@ while running:
 
             arcLength = sum(distances)
             cumulativeSum = 0
-            for iter in range(len(distances)):
+            for iter in range(len(distances)): # finds the arclength of a curve by summing the distances between all the sample points
                 distances[iter] += cumulativeSum
                 cumulativeSum = distances[iter]
             
-            numSamplePoints = round(arcLength / POINTSPACING)
+            numSamplePoints = round(arcLength / POINTSPACING) # ensures that all points on the field will be equally spaced by making the # points in a curve proportional to its arclength
 
             equallySpacedPoints = []
-            for iter in range(numSamplePoints):
-                equallySpacedPoints.append(lookUpTable(distances, arcLength * iter / numSamplePoints))
+            for iter in range(numSamplePoints): # 
+                equallySpacedPoints.append(lookUpTable(distances, arcLength * iter / numSamplePoints)) # uses a lookup table to sample points that are equally spaced by distance, not t value
 
             pointCoords = []
-            for tValue in equallySpacedPoints:
+            for tValue in equallySpacedPoints: # bezier formula, using Freya Holmer's brilliant explanation about everything bezier curve-related
                 x = point1[0]*(-tValue**3 + 3*tValue**2 - 3*tValue + 1) + point2[0]*(3*tValue**3 - 6*tValue**2 + 3*tValue) + point3[0]*(-3*tValue**3 + 3*tValue**2) + point4[0]*(tValue**3)
                 y = point1[1]*(-tValue**3 + 3*tValue**2 - 3*tValue + 1) + point2[1]*(3*tValue**3 - 6*tValue**2 + 3*tValue) + point3[1]*(-3*tValue**3 + 3*tValue**2) + point4[1]*(tValue**3)
                 pointCoords.append([x, y])
@@ -298,7 +296,7 @@ while running:
                 else:
                     pygame.draw.circle(screen, [255, 255, 255], [blitX, blitY], 2)
             totalCurve.append(pointCoords)
-            if pointTypes[index + 1] == "reflex":
+            if pointTypes[index + 1] == "reflex": # in the special case of reflex points, the direction we travel in flips
                 reverse = not reverse
 
     ### Draws Points / Handle Points ###
@@ -333,6 +331,7 @@ while running:
                             group[0][0], group[0][1] = dot[0], dot[1]
                     else:
                         dot[0], dot[1] = convertCoords(pygame.mouse.get_pos(), "b")
+
         handle1 = tuple(convertCoords(group[0], "f"))
         midpoint = tuple(convertCoords(group[1], "f"))
         handle2 = tuple(convertCoords(group[2], "f"))
@@ -356,6 +355,7 @@ while running:
         elif pointTypes[index] == "reflex":
             pygame.draw.circle(screen, [0, 0, 255], handle2, 5)
 
+    # detects if any GUI elements are interacted with, using GUI library
     if skillsButton.isClicked():
         mode = "skills"
     elif autonButton.isClicked():
@@ -384,7 +384,7 @@ while running:
     if not export.isClicked():
         pressingExport = False
 
-    for index, group in enumerate(points):
+    for index, group in enumerate(points): # detects if any points are deleted
         for dotIndex, dot in enumerate(group):
             if pointSelected == [index, dotIndex]:
                 if selector == "delete" and not index == 0:
@@ -394,7 +394,7 @@ while running:
                     pointSelected = [0,0]
                     print(len(points))
 
-    if selector == "delete":
+    if selector == "delete": # shows little delete icon on mouse when in delete mode
         delete_rect.centery = pygame.mouse.get_pos()[1]
         delete_rect.centerx = pygame.mouse.get_pos()[0]
         screen.blit(delete, delete_rect)
@@ -404,7 +404,7 @@ while running:
             running = False
 
     if pygame.mouse.get_pressed()[0]:
-        detectClosestPoint()
+        detectClosestPoint() # runs code to allow points to detect when clicked, so they may be dragged around
     elif not pygame.mouse.get_pressed()[0]:
         pointSelected = [0,0]
 
@@ -412,7 +412,6 @@ while running:
     clock.tick(fps)
     # update the screen
     pygame.display.update()
-    #time.sleep(1)
 
 # quit Pygame
 pygame.quit()
