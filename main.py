@@ -45,7 +45,7 @@ initialReverse = False
 totalCurve = []
 
 POINTSPACING = 0.00694444444
-SAMPLINGRESOLUTION = 200
+SAMPLINGRESOLUTION = 500
 
 ###### INITIALIZE ######
 
