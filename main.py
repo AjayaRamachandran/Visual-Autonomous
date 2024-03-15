@@ -169,6 +169,19 @@ export = gui.Button(
     fontSize=26
     )
 
+importer = gui.Button(
+    name="importer_button",
+    width=510,
+    height=60,
+    cornerRadius = 15,
+    color=[106, 124, 128],
+    text="Import",
+    x=1175,
+    y=690,
+    scale=1,
+    fontSize=26
+    )
+
 ###### POINT MANAGEMENT ######
 
 points = [
@@ -251,6 +264,7 @@ while running:
     startInReverse.draw(screen, mode=int(initialReverse))
     startForward.draw(screen, mode=int(not initialReverse))
     export.draw(screen)
+    importer.draw(screen)
 
     ### Draws Curves ###
     reverse = initialReverse
@@ -381,7 +395,9 @@ while running:
     elif export.isClicked() and not pressingExport:
         generateOutput()
         pressingExport = True
-    if not export.isClicked():
+    elif importer.isClicked():
+        importedFile = io.importFile()
+    elif not export.isClicked():
         pressingExport = False
 
     for index, group in enumerate(points): # detects if any points are deleted
