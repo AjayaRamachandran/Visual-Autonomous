@@ -224,20 +224,20 @@ def detectClosestPoint(): # function to detect which point on the field is close
 
 def generateOutput(): # generates a text file that contains the path data
     output = open("output.txt", "w")
-    output.write("double coordinates[][2] = {")
+    output.write("float coordinates[][2] = {")
     lengths = []
     for index1, curve in enumerate(totalCurve): # structure of file is a list of points (the waypoints), then a second list which contains the arclengths between the handles
         for index2, point in enumerate(curve):
-            output.write("{" + f"{point[0]}, {point[1]}" + "}")
+            output.write("{" + f"{np.float16(point[0] * 144)}, {np.float16(144 - point[1] * 144)}" + "}") # y is flipped bc pygame is weird, and programmer wants up to be positive
             if index2 == len(curve) - 1 and index1 == len(totalCurve) - 1:
                 output.write("")
             else:
                 output.write(",")
         lengths.append(len(curve))
     output.write("};\n")
-    output.write("double curveLengths[] = {")
+    output.write("float curveLengths[] = {")
     for index, length in enumerate(lengths):
-        output.write(f"{length}")
+        output.write(f"{np.float16(length)}")
         if index != len(lengths) - 1:
             output.write(",")
     output.write("};\n")
