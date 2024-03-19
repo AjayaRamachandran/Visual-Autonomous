@@ -9,6 +9,7 @@ import copy
 import bisect
 import pickle as pkl
 from tkinter.filedialog import asksaveasfile
+from tkinter.filedialog import askopenfilename
 
 import gui
 import inout as io
@@ -200,11 +201,7 @@ importer = gui.Button(
 ###### POINT MANAGEMENT ######
 
 points = [
-    [[0.2,0.2],[0.3,0.3],[0.2,0.2]]
-]
-
-pointTypes = [
-    "reflex"
+    [[0.2,0.2],[0.3,0.3],[0.2,0.2], "reflex"]
 ]
 
 ###### FUNCTIONS ######
@@ -234,8 +231,9 @@ def detectClosestPoint(): # function to detect which point on the field is close
 
     for index, group in enumerate(points):
         for selectIndex, point in enumerate(group):
-            if dist(point, mousePos) < 0.01 and pointSelected == [0,0]:
-                pointSelected = [index, selectIndex]
+            if selectIndex < 3:
+                if dist(point, mousePos) < 0.01 and pointSelected == [0,0]:
+                    pointSelected = [index, selectIndex]
 
 def generateOutput(): # generates a text file that contains the path data
     output = open("output.txt", "w")
@@ -270,7 +268,10 @@ def generateFile():
     filename.close()
 
 def openFile():
-    None
+    global points
+    filename = askopenfilename()
+    file = open(filename, 'rb')
+    points = pkl.load(file)
 
 ###### MAINLOOP ######
 
@@ -339,7 +340,7 @@ while running:
                 else:
                     pygame.draw.circle(screen, [255, 255, 255], [blitX, blitY], 2)
             totalCurve.append(pointCoords)
-            if pointTypes[index + 1] == "reflex": # in the special case of reflex points, the direction we travel in flips
+            if points[index + 1][3] == "reflex": # in the special case of reflex points, the direction we travel in flips
                 reverse = not reverse
 
     ### Draws Points / Handle Points ###
@@ -354,7 +355,7 @@ while running:
                         group[2][0] += convertCoords(pygame.mouse.get_pos(), "b")[0] - dot[0] # changes both handles to stay locked to the center point
                         group[2][1] += convertCoords(pygame.mouse.get_pos(), "b")[1] - dot[1]
 
-                    if (dotIndex == 0 or dotIndex == 2) and not index == 0 and pointTypes[index] == "passthrough": # checks to see if the point selected is an in-handle, if so adjust out-handle to be on opposite side of point
+                    if (dotIndex == 0 or dotIndex == 2) and not index == 0 and points[index][3] == "passthrough": # checks to see if the point selected is an in-handle, if so adjust out-handle to be on opposite side of point
                         if dotIndex == 0:
                             outHandleLength = dist(group[1], group[2]) # gets distance between point and out handle
                             outHandleDirection = dir(group[0], group[1]) # gets the direction that the out handle needs to be facing
@@ -366,7 +367,7 @@ while running:
                             group[0][0] = group[1][0] + inHandleLength * cos(inHandleDirection)
                             group[0][1] = group[1][1] + inHandleLength * sin(inHandleDirection)
                         dot[0], dot[1] = convertCoords(pygame.mouse.get_pos(), "b")
-                    elif (dotIndex == 0 or dotIndex == 2) and not index == 0 and pointTypes[index] == "reflex":
+                    elif (dotIndex == 0 or dotIndex == 2) and not index == 0 and points[index][3] == "reflex":
                         dot[0], dot[1] = convertCoords(pygame.mouse.get_pos(), "b")
                         if dotIndex == 0:
                             group[2][0], group[2][1] = dot[0], dot[1]
@@ -384,18 +385,18 @@ while running:
         pygame.draw.aaline(screen, [255, 255, 255], midpoint, handle2)
 
         if not index == 0:
-            if pointTypes[index] == "passthrough": # makes the in handle yellow if it is passthrough point, green if it is turning
+            if points[index][3] == "passthrough": # makes the in handle yellow if it is passthrough point, green if it is turning
                 pygame.draw.circle(screen, [255, 255, 0], handle1, 5)
-            elif pointTypes[index] == "turning":
+            elif points[index][3] == "turning":
                 pygame.draw.circle(screen, [0, 255, 0], handle1, 5)
 
         pygame.draw.circle(screen, [255, 255, 255], midpoint, 5)
 
-        if pointTypes[index] == "passthrough": # makes the out handle yellow if it is passthrough point, red if it is turning
+        if points[index][3] == "passthrough": # makes the out handle yellow if it is passthrough point, red if it is turning
             pygame.draw.circle(screen, [255, 255, 0], handle2, 5)
-        elif pointTypes[index] == "turning":
+        elif points[index][3] == "turning":
             pygame.draw.circle(screen, [255, 0, 0], handle2, 5)
-        elif pointTypes[index] == "reflex":
+        elif points[index][3] == "reflex":
             pygame.draw.circle(screen, [0, 0, 255], handle2, 5)
 
     # detects if any GUI elements are interacted with, using GUI library
@@ -409,16 +410,13 @@ while running:
         initialReverse = False
     elif addPTButton.isClicked():
         if not points[len(points) - 1][0] == [0.4,0.4]:
-            points.append([[0.4,0.4],[0.5,0.5],[0.6,0.6]])
-            pointTypes.append("passthrough")
+            points.append([[0.4,0.4],[0.5,0.5],[0.6,0.6], "passthrough"])
     elif addTurnButton.isClicked():
         if not points[len(points) - 1][0] == [0.4,0.4]:
-            points.append([[0.4,0.4],[0.5,0.5],[0.6,0.6]])
-            pointTypes.append("turning")
+            points.append([[0.4,0.4],[0.5,0.5],[0.6,0.6], "turning"])
     elif addReflexButton.isClicked():
         if not points[len(points) - 1][0] == [0.4,0.4]:
-            points.append([[0.4,0.4],[0.5,0.5],[0.4,0.4]])
-            pointTypes.append("reflex")
+            points.append([[0.4,0.4],[0.5,0.5],[0.4,0.4], "reflex"])
     elif deleteButton.isClicked():
         selector = "delete"
     elif exportWaypoints.isClicked() and not pressingExport:
@@ -428,7 +426,7 @@ while running:
         generateFile()
         pressingExport = True
     elif importer.isClicked():
-        importedFile = io.importFile()
+        openFile()
     elif not exportWaypoints.isClicked() and not exportAsFile.isClicked():
         pressingExport = False
 
@@ -437,7 +435,6 @@ while running:
             if pointSelected == [index, dotIndex]:
                 if selector == "delete" and not index == 0:
                     points.pop(index)
-                    pointTypes.pop(index)
                     selector = "edit"
                     pointSelected = [0,0]
                     print(len(points))
