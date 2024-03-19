@@ -156,14 +156,27 @@ startForward = gui.Button(
     fontSize=26
     )
 
-export = gui.Button(
-    name="export_button",
-    width=510,
+exportWaypoints = gui.Button(
+    name="export_waypoints_button",
+    width=250,
     height=60,
     cornerRadius = 15,
     color=[148, 132, 84],
-    text="Export",
-    x=1175,
+    text="Export Waypoints",
+    x=1045,
+    y=620,
+    scale=1,
+    fontSize=26
+    )
+
+exportAsFile = gui.Button(
+    name="export_button",
+    width=250,
+    height=60,
+    cornerRadius = 15,
+    color=[148, 120, 84],
+    text="Export File",
+    x=1305,
     y=620,
     scale=1,
     fontSize=26
@@ -263,7 +276,8 @@ while running:
     deleteButton.draw(screen)
     startInReverse.draw(screen, mode=int(initialReverse))
     startForward.draw(screen, mode=int(not initialReverse))
-    export.draw(screen)
+    exportAsFile.draw(screen)
+    exportWaypoints.draw(screen)
     importer.draw(screen)
 
     ### Draws Curves ###
@@ -392,12 +406,12 @@ while running:
             pointTypes.append("reflex")
     elif deleteButton.isClicked():
         selector = "delete"
-    elif export.isClicked() and not pressingExport:
+    elif exportWaypoints.isClicked() and not pressingExport:
         generateOutput()
         pressingExport = True
     elif importer.isClicked():
         importedFile = io.importFile()
-    elif not export.isClicked():
+    elif not exportWaypoints.isClicked():
         pressingExport = False
 
     for index, group in enumerate(points): # detects if any points are deleted
