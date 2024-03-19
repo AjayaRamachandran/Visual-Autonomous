@@ -7,6 +7,8 @@ from math import *
 import numpy as np
 import copy
 import bisect
+import pickle as pkl
+from tkinter.filedialog import asksaveasfile
 
 import gui
 import inout as io
@@ -44,7 +46,7 @@ selector = "edit"
 initialReverse = False
 totalCurve = []
 
-POINTSPACING = 0.00694444444
+POINTSPACING = 0.006944444
 SAMPLINGRESOLUTION = 500
 
 ###### INITIALIZE ######
@@ -241,7 +243,7 @@ def generateOutput(): # generates a text file that contains the path data
     lengths = []
     for index1, curve in enumerate(totalCurve): # structure of file is a list of points (the waypoints), then a second list which contains the arclengths between the handles
         for index2, point in enumerate(curve):
-            output.write("{" + f"{np.float16(point[0] * 144)}, {np.float16(144 - point[1] * 144)}" + "}") # y is flipped bc pygame is weird, and programmer wants up to be positive
+            output.write("{" + f"{np.float16(point[0] * 144)}, {np.float16(144 - point[1] * 144)}" + "}")
             if index2 == len(curve) - 1 and index1 == len(totalCurve) - 1:
                 output.write("")
             else:
@@ -256,6 +258,19 @@ def generateOutput(): # generates a text file that contains the path data
     output.write("};\n")
     output.close()
     io.showOutput("output.txt") # shows the text file to the screen using subprocess
+
+def generateFile():
+    filename = asksaveasfile(initialfile = 'my_path.robopath', mode='wb',defaultextension=".robopath", filetypes=[("Robot Autonomous Path","*.robopath")])
+    myPath = open("my_path.robopath", "wb")
+    pkl.dump(points, myPath, -1)
+    myPath = open("my_path.robopath", "rb")
+
+    pathBytes = bytearray(myPath.read())
+    filename.write(pathBytes)
+    filename.close()
+
+def openFile():
+    None
 
 ###### MAINLOOP ######
 
@@ -409,9 +424,12 @@ while running:
     elif exportWaypoints.isClicked() and not pressingExport:
         generateOutput()
         pressingExport = True
+    elif exportAsFile.isClicked() and not pressingExport:
+        generateFile()
+        pressingExport = True
     elif importer.isClicked():
         importedFile = io.importFile()
-    elif not exportWaypoints.isClicked():
+    elif not exportWaypoints.isClicked() and not exportAsFile.isClicked():
         pressingExport = False
 
     for index, group in enumerate(points): # detects if any points are deleted
