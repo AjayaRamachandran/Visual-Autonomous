@@ -235,9 +235,9 @@ def generateOutput(): # generates a text file that contains the path data
                 output.write(",")
         lengths.append(len(curve))
     output.write("};\n")
-    output.write("float curveLengths[] = {")
+    output.write("int curveLengths[] = {")
     for index, length in enumerate(lengths):
-        output.write(f"{np.float16(length)}")
+        output.write(f"{int(length)}")
         if index != len(lengths) - 1:
             output.write(",")
     output.write("};\n")
