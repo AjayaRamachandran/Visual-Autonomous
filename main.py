@@ -251,7 +251,7 @@ def generateOutput(): # generates a text file that contains the path data
     output.write("float coordinates[] = {")
     for index1, curve in enumerate(totalThetas): # structure of file is a list of points (the waypoints), then a second list which contains the arclengths between the handles
         for index2, theta in enumerate(curve):
-            output.write(f"{-np.float16(theta)}")
+            output.write(f"{np.float16(theta)}")
             if index2 == len(curve) - 1 and index1 == len(totalCurve) - 1:
                 output.write("")
             else:
@@ -349,7 +349,7 @@ while running:
                 dx = point1[0]*(-3*tValue**2 + 6*tValue - 3) + point2[0]*(9*tValue**2 - 12*tValue + 3) + point3[0]*(-9*tValue**2 + 6*tValue) + point4[0]*(3*tValue**2)
                 dy = point1[1]*(-3*tValue**2 + 6*tValue - 3) + point2[1]*(9*tValue**2 - 12*tValue + 3) + point3[1]*(-9*tValue**2 + 6*tValue) + point4[1]*(3*tValue**2)
 
-                directionOfPath = dir((0,0),(dx,dy)) # direction of the derivative is calculated, which is the direction the point is "facing"
+                directionOfPath = dir((0,0),(dx,dy)) + pi/2 # direction of the derivative is calculated, which is the direction the point is "facing"
 
                 thetas.append(directionOfPath)
                 pointCoords.append([x, y])
