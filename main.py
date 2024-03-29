@@ -248,7 +248,7 @@ def generateOutput(): # generates a text file that contains the path data
                 output.write(",")
         lengths.append(len(curve))
     output.write("};\n")
-    output.write("float coordinates[] = {")
+    output.write("float thetas[] = {")
     for index1, curve in enumerate(totalThetas): # structure of file is a list of points (the waypoints), then a second list which contains the arclengths between the handles
         for index2, theta in enumerate(curve):
             output.write(f"{np.float16(theta)}")
