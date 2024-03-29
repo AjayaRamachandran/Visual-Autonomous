@@ -47,7 +47,7 @@ selector = "edit"
 initialReverse = False
 totalCurve = []
 
-POINTSPACING = 0.006944444
+POINTSPACING = 0.03472222222
 SAMPLINGRESOLUTION = 500
 
 ###### INITIALIZE ######
@@ -248,6 +248,15 @@ def generateOutput(): # generates a text file that contains the path data
                 output.write(",")
         lengths.append(len(curve))
     output.write("};\n")
+    output.write("float coordinates[] = {")
+    for index1, curve in enumerate(totalThetas): # structure of file is a list of points (the waypoints), then a second list which contains the arclengths between the handles
+        for index2, theta in enumerate(curve):
+            output.write(f"{-np.float16(theta)}")
+            if index2 == len(curve) - 1 and index1 == len(totalCurve) - 1:
+                output.write("")
+            else:
+                output.write(",")
+    output.write("};\n")
     output.write("int curveLengths[] = {")
     for index, length in enumerate(lengths):
         output.write(f"{int(length)}")
@@ -299,6 +308,7 @@ while running:
     ### Draws Curves ###
     reverse = initialReverse
     totalCurve = []
+    totalThetas = []
     for index, group in enumerate(points):
         if not index == len(points) - 1:
             point1 = points[index][1] # point 1 is the starting point
@@ -330,9 +340,18 @@ while running:
                 equallySpacedPoints.append(lookUpTable(distances, arcLength * iter / numSamplePoints)) # uses a lookup table to sample points that are equally spaced by distance, not t value
 
             pointCoords = []
+            thetas = []
             for tValue in equallySpacedPoints: # bezier formula, using Freya Holmer's brilliant explanation about everything bezier curve-related
                 x = point1[0]*(-tValue**3 + 3*tValue**2 - 3*tValue + 1) + point2[0]*(3*tValue**3 - 6*tValue**2 + 3*tValue) + point3[0]*(-3*tValue**3 + 3*tValue**2) + point4[0]*(tValue**3)
                 y = point1[1]*(-tValue**3 + 3*tValue**2 - 3*tValue + 1) + point2[1]*(3*tValue**3 - 6*tValue**2 + 3*tValue) + point3[1]*(-3*tValue**3 + 3*tValue**2) + point4[1]*(tValue**3)
+                
+                # derivative of bezier formula, also using Freya Holmer's explanation
+                dx = point1[0]*(-3*tValue**2 + 6*tValue - 3) + point2[0]*(9*tValue**2 - 12*tValue + 3) + point3[0]*(-9*tValue**2 + 6*tValue) + point4[0]*(3*tValue**2)
+                dy = point1[1]*(-3*tValue**2 + 6*tValue - 3) + point2[1]*(9*tValue**2 - 12*tValue + 3) + point3[1]*(-9*tValue**2 + 6*tValue) + point4[1]*(3*tValue**2)
+
+                directionOfPath = dir((0,0),(dx,dy)) # direction of the derivative is calculated, which is the direction the point is "facing"
+
+                thetas.append(directionOfPath)
                 pointCoords.append([x, y])
                 blitX, blitY = convertCoords([x, y], "f")
                 if reverse:
@@ -340,6 +359,7 @@ while running:
                 else:
                     pygame.draw.circle(screen, [255, 255, 255], [blitX, blitY], 2)
             totalCurve.append(pointCoords)
+            totalThetas.append(thetas)
             if points[index + 1][3] == "reflex": # in the special case of reflex points, the direction we travel in flips
                 reverse = not reverse
 
