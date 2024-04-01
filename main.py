@@ -92,7 +92,7 @@ legacyMode = gui.Button(
     color=[100, 100, 115],
     text="Legacy Mode",
     x=1175,
-    y=160,
+    y=150,
     scale=1,
     fontSize=26
     )
@@ -105,7 +105,20 @@ bezierMode = gui.Button(
     color=[100, 150, 100],
     text="Bezier Mode",
     x=1175,
-    y=160,
+    y=150,
+    scale=1,
+    fontSize=26
+    )
+
+addPointButton = gui.Button(
+    name="point_button",
+    width=510,
+    height=60,
+    cornerRadius = 15,
+    color=[100, 120, 100],
+    text="Add Point",
+    x=1175,
+    y=260,
     scale=1,
     fontSize=26
     )
@@ -115,7 +128,7 @@ addPTButton = gui.Button(
     width=510,
     height=60,
     cornerRadius = 15,
-    color=[100, 100, 105],
+    color=[100, 120, 100],
     text="Add Passthrough Point",
     x=1175,
     y=260,
@@ -233,6 +246,8 @@ points = [
     [[0.2,0.2],[0.3,0.3],[0.2,0.2], "reflex"]
 ]
 
+linearPoints = [[0.3, 0.3]]
+
 ###### FUNCTIONS ######
 
 def dist(point1, point2): # calculates the distance between two points
@@ -262,7 +277,10 @@ def detectClosestPoint(): # function to detect which point on the field is close
         for selectIndex, point in enumerate(group):
             if selectIndex < 3:
                 if dist(point, mousePos) < 0.01 and pointSelected == [0,0]:
-                    pointSelected = [index, selectIndex]
+                    if version == "bezier":
+                        pointSelected = [index, selectIndex]
+                    if version == "legacy":
+                        pointSelected = index
 
 def generateOutput(): # generates a text file that contains the path data
     output = open("output.txt", "w")
@@ -326,11 +344,12 @@ while running:
     autonButton.draw(screen, mode=int(mode=="auton"))
     if version == "legacy":
         bezierMode.draw(screen)
+        addPointButton.draw(screen)
     elif version == "bezier":
         legacyMode.draw(screen)
-    addPTButton.draw(screen)
-    addTurnButton.draw(screen)
-    addReflexButton.draw(screen)
+        addPTButton.draw(screen)
+        addTurnButton.draw(screen)
+        addReflexButton.draw(screen)
     deleteButton.draw(screen)
     startInReverse.draw(screen, mode=int(initialReverse))
     startForward.draw(screen, mode=int(not initialReverse))
@@ -339,118 +358,129 @@ while running:
     importer.draw(screen)
 
     ### Draws Curves ###
-    reverse = initialReverse
-    totalCurve = []
-    totalThetas = []
-    for index, group in enumerate(points):
-        if not index == len(points) - 1:
-            point1 = points[index][1] # point 1 is the starting point
-            point2 = points[index][2] # point 2 is the first handle (off of the first point)
-            point3 = points[index + 1][0] # point 3 is the second handle (off of the second point)
-            point4 = points[index + 1][1] # point 4 is the ending point
+    if version == "bezier":
+        reverse = initialReverse
+        totalCurve = []
+        totalThetas = []
+        for index, group in enumerate(points):
+            if not index == len(points) - 1:
+                point1 = points[index][1] # point 1 is the starting point
+                point2 = points[index][2] # point 2 is the first handle (off of the first point)
+                point3 = points[index + 1][0] # point 3 is the second handle (off of the second point)
+                point4 = points[index + 1][1] # point 4 is the ending point
 
-            prevPoint = [point1[0], point1[1]]
-            distances = []
-            for t in range(0, SAMPLINGRESOLUTION):
-                tValue = t/(SAMPLINGRESOLUTION - 1)
-                x = point1[0]*(-tValue**3 + 3*tValue**2 - 3*tValue + 1) + point2[0]*(3*tValue**3 - 6*tValue**2 + 3*tValue) + point3[0]*(-3*tValue**3 + 3*tValue**2) + point4[0]*(tValue**3)
-                y = point1[1]*(-tValue**3 + 3*tValue**2 - 3*tValue + 1) + point2[1]*(3*tValue**3 - 6*tValue**2 + 3*tValue) + point3[1]*(-3*tValue**3 + 3*tValue**2) + point4[1]*(tValue**3)
+                prevPoint = [point1[0], point1[1]]
+                distances = []
+                for t in range(0, SAMPLINGRESOLUTION):
+                    tValue = t/(SAMPLINGRESOLUTION - 1)
+                    x = point1[0]*(-tValue**3 + 3*tValue**2 - 3*tValue + 1) + point2[0]*(3*tValue**3 - 6*tValue**2 + 3*tValue) + point3[0]*(-3*tValue**3 + 3*tValue**2) + point4[0]*(tValue**3)
+                    y = point1[1]*(-tValue**3 + 3*tValue**2 - 3*tValue + 1) + point2[1]*(3*tValue**3 - 6*tValue**2 + 3*tValue) + point3[1]*(-3*tValue**3 + 3*tValue**2) + point4[1]*(tValue**3)
 
-                distToLastPoint = dist([x, y], prevPoint) # calculates the distance between current sample point and the last
-                distances.append(distToLastPoint)
-                prevPoint = [x, y]
+                    distToLastPoint = dist([x, y], prevPoint) # calculates the distance between current sample point and the last
+                    distances.append(distToLastPoint)
+                    prevPoint = [x, y]
 
-            arcLength = sum(distances)
-            cumulativeSum = 0
-            for iter in range(len(distances)): # finds the arclength of a curve by summing the distances between all the sample points
-                distances[iter] += cumulativeSum
-                cumulativeSum = distances[iter]
-            
-            numSamplePoints = round(arcLength / POINTSPACING) # ensures that all points on the field will be equally spaced by making the # points in a curve proportional to its arclength
-
-            equallySpacedPoints = []
-            for iter in range(numSamplePoints): # 
-                equallySpacedPoints.append(lookUpTable(distances, arcLength * iter / numSamplePoints)) # uses a lookup table to sample points that are equally spaced by distance, not t value
-
-            pointCoords = []
-            thetas = []
-            for tValue in equallySpacedPoints: # bezier formula, using Freya Holmer's brilliant explanation about everything bezier curve-related
-                x = point1[0]*(-tValue**3 + 3*tValue**2 - 3*tValue + 1) + point2[0]*(3*tValue**3 - 6*tValue**2 + 3*tValue) + point3[0]*(-3*tValue**3 + 3*tValue**2) + point4[0]*(tValue**3)
-                y = point1[1]*(-tValue**3 + 3*tValue**2 - 3*tValue + 1) + point2[1]*(3*tValue**3 - 6*tValue**2 + 3*tValue) + point3[1]*(-3*tValue**3 + 3*tValue**2) + point4[1]*(tValue**3)
+                arcLength = sum(distances)
+                cumulativeSum = 0
+                for iter in range(len(distances)): # finds the arclength of a curve by summing the distances between all the sample points
+                    distances[iter] += cumulativeSum
+                    cumulativeSum = distances[iter]
                 
-                # derivative of bezier formula, also using Freya Holmer's explanation
-                dx = point1[0]*(-3*tValue**2 + 6*tValue - 3) + point2[0]*(9*tValue**2 - 12*tValue + 3) + point3[0]*(-9*tValue**2 + 6*tValue) + point4[0]*(3*tValue**2)
-                dy = point1[1]*(-3*tValue**2 + 6*tValue - 3) + point2[1]*(9*tValue**2 - 12*tValue + 3) + point3[1]*(-9*tValue**2 + 6*tValue) + point4[1]*(3*tValue**2)
+                numSamplePoints = round(arcLength / POINTSPACING) # ensures that all points on the field will be equally spaced by making the # points in a curve proportional to its arclength
 
-                directionOfPath = dir((0,0),(dx,dy)) + pi/2 # direction of the derivative is calculated, which is the direction the point is "facing"
+                equallySpacedPoints = []
+                for iter in range(numSamplePoints): # 
+                    equallySpacedPoints.append(lookUpTable(distances, arcLength * iter / numSamplePoints)) # uses a lookup table to sample points that are equally spaced by distance, not t value
 
-                thetas.append(directionOfPath)
-                pointCoords.append([x, y])
-                blitX, blitY = convertCoords([x, y], "f")
-                if reverse:
-                    pygame.draw.circle(screen, [80, 80, 80], [blitX, blitY], 2)
-                else:
-                    pygame.draw.circle(screen, [255, 255, 255], [blitX, blitY], 2)
-            totalCurve.append(pointCoords)
-            totalThetas.append(thetas)
-            if points[index + 1][3] == "reflex": # in the special case of reflex points, the direction we travel in flips
-                reverse = not reverse
+                pointCoords = []
+                thetas = []
+                for tValue in equallySpacedPoints: # bezier formula, using Freya Holmer's brilliant explanation about everything bezier curve-related
+                    x = point1[0]*(-tValue**3 + 3*tValue**2 - 3*tValue + 1) + point2[0]*(3*tValue**3 - 6*tValue**2 + 3*tValue) + point3[0]*(-3*tValue**3 + 3*tValue**2) + point4[0]*(tValue**3)
+                    y = point1[1]*(-tValue**3 + 3*tValue**2 - 3*tValue + 1) + point2[1]*(3*tValue**3 - 6*tValue**2 + 3*tValue) + point3[1]*(-3*tValue**3 + 3*tValue**2) + point4[1]*(tValue**3)
+                    
+                    # derivative of bezier formula, also using Freya Holmer's explanation
+                    dx = point1[0]*(-3*tValue**2 + 6*tValue - 3) + point2[0]*(9*tValue**2 - 12*tValue + 3) + point3[0]*(-9*tValue**2 + 6*tValue) + point4[0]*(3*tValue**2)
+                    dy = point1[1]*(-3*tValue**2 + 6*tValue - 3) + point2[1]*(9*tValue**2 - 12*tValue + 3) + point3[1]*(-9*tValue**2 + 6*tValue) + point4[1]*(3*tValue**2)
 
-    ### Draws Points / Handle Points ###
-    for index, group in enumerate(points):
-        for dotIndex, dot in enumerate(group):
-            if pointSelected == [index, dotIndex]:
-                if selector == "edit":
-                    if dotIndex == 1: #checks to see if the point selected is not a handle
-                        group[0][0] += convertCoords(pygame.mouse.get_pos(), "b")[0] - dot[0] # changes both handles to stay locked to the center point
-                        group[0][1] += convertCoords(pygame.mouse.get_pos(), "b")[1] - dot[1]
+                    directionOfPath = dir((0,0),(dx,dy)) + pi/2 # direction of the derivative is calculated, which is the direction the point is "facing"
 
-                        group[2][0] += convertCoords(pygame.mouse.get_pos(), "b")[0] - dot[0] # changes both handles to stay locked to the center point
-                        group[2][1] += convertCoords(pygame.mouse.get_pos(), "b")[1] - dot[1]
-
-                    if (dotIndex == 0 or dotIndex == 2) and not index == 0 and points[index][3] == "passthrough": # checks to see if the point selected is an in-handle, if so adjust out-handle to be on opposite side of point
-                        if dotIndex == 0:
-                            outHandleLength = dist(group[1], group[2]) # gets distance between point and out handle
-                            outHandleDirection = dir(group[0], group[1]) # gets the direction that the out handle needs to be facing
-                            group[2][0] = group[1][0] + outHandleLength * cos(outHandleDirection)
-                            group[2][1] = group[1][1] + outHandleLength * sin(outHandleDirection)
-                        else:
-                            inHandleLength = dist(group[1], group[0]) # gets distance between point and in handle
-                            inHandleDirection = dir(group[2], group[1]) # gets the direction that the in handle needs to be facing
-                            group[0][0] = group[1][0] + inHandleLength * cos(inHandleDirection)
-                            group[0][1] = group[1][1] + inHandleLength * sin(inHandleDirection)
-                        dot[0], dot[1] = convertCoords(pygame.mouse.get_pos(), "b")
-                    elif (dotIndex == 0 or dotIndex == 2) and not index == 0 and points[index][3] == "reflex":
-                        dot[0], dot[1] = convertCoords(pygame.mouse.get_pos(), "b")
-                        if dotIndex == 0:
-                            group[2][0], group[2][1] = dot[0], dot[1]
-                        elif dotIndex == 2:
-                            group[0][0], group[0][1] = dot[0], dot[1]
+                    thetas.append(directionOfPath)
+                    pointCoords.append([x, y])
+                    blitX, blitY = convertCoords([x, y], "f")
+                    if reverse:
+                        pygame.draw.circle(screen, [80, 80, 80], [blitX, blitY], 2)
                     else:
-                        dot[0], dot[1] = convertCoords(pygame.mouse.get_pos(), "b")
+                        pygame.draw.circle(screen, [255, 255, 255], [blitX, blitY], 2)
+                totalCurve.append(pointCoords)
+                totalThetas.append(thetas)
+                if points[index + 1][3] == "reflex": # in the special case of reflex points, the direction we travel in flips
+                    reverse = not reverse
 
-        handle1 = tuple(convertCoords(group[0], "f"))
-        midpoint = tuple(convertCoords(group[1], "f"))
-        handle2 = tuple(convertCoords(group[2], "f"))
-        
-        if not index == 0:
-            pygame.draw.aaline(screen, [255, 255, 255], handle1, midpoint)
-        pygame.draw.aaline(screen, [255, 255, 255], midpoint, handle2)
+        ### Draws Points / Handle Points ###
+        for index, group in enumerate(points):
+            for dotIndex, dot in enumerate(group):
+                if pointSelected == [index, dotIndex]:
+                    if selector == "edit":
+                        if dotIndex == 1: #checks to see if the point selected is not a handle
+                            group[0][0] += convertCoords(pygame.mouse.get_pos(), "b")[0] - dot[0] # changes both handles to stay locked to the center point
+                            group[0][1] += convertCoords(pygame.mouse.get_pos(), "b")[1] - dot[1]
 
-        if not index == 0:
-            if points[index][3] == "passthrough": # makes the in handle yellow if it is passthrough point, green if it is turning
-                pygame.draw.circle(screen, [255, 255, 0], handle1, 5)
+                            group[2][0] += convertCoords(pygame.mouse.get_pos(), "b")[0] - dot[0] # changes both handles to stay locked to the center point
+                            group[2][1] += convertCoords(pygame.mouse.get_pos(), "b")[1] - dot[1]
+
+                        if (dotIndex == 0 or dotIndex == 2) and not index == 0 and points[index][3] == "passthrough": # checks to see if the point selected is an in-handle, if so adjust out-handle to be on opposite side of point
+                            if dotIndex == 0:
+                                outHandleLength = dist(group[1], group[2]) # gets distance between point and out handle
+                                outHandleDirection = dir(group[0], group[1]) # gets the direction that the out handle needs to be facing
+                                group[2][0] = group[1][0] + outHandleLength * cos(outHandleDirection)
+                                group[2][1] = group[1][1] + outHandleLength * sin(outHandleDirection)
+                            else:
+                                inHandleLength = dist(group[1], group[0]) # gets distance between point and in handle
+                                inHandleDirection = dir(group[2], group[1]) # gets the direction that the in handle needs to be facing
+                                group[0][0] = group[1][0] + inHandleLength * cos(inHandleDirection)
+                                group[0][1] = group[1][1] + inHandleLength * sin(inHandleDirection)
+                            dot[0], dot[1] = convertCoords(pygame.mouse.get_pos(), "b")
+                        elif (dotIndex == 0 or dotIndex == 2) and not index == 0 and points[index][3] == "reflex":
+                            dot[0], dot[1] = convertCoords(pygame.mouse.get_pos(), "b")
+                            if dotIndex == 0:
+                                group[2][0], group[2][1] = dot[0], dot[1]
+                            elif dotIndex == 2:
+                                group[0][0], group[0][1] = dot[0], dot[1]
+                        else:
+                            dot[0], dot[1] = convertCoords(pygame.mouse.get_pos(), "b")
+
+            handle1 = tuple(convertCoords(group[0], "f"))
+            midpoint = tuple(convertCoords(group[1], "f"))
+            handle2 = tuple(convertCoords(group[2], "f"))
+            
+            if not index == 0:
+                pygame.draw.aaline(screen, [255, 255, 255], handle1, midpoint)
+            pygame.draw.aaline(screen, [255, 255, 255], midpoint, handle2)
+
+            if not index == 0:
+                if points[index][3] == "passthrough": # makes the in handle yellow if it is passthrough point, green if it is turning
+                    pygame.draw.circle(screen, [255, 255, 0], handle1, 5)
+                elif points[index][3] == "turning":
+                    pygame.draw.circle(screen, [0, 255, 0], handle1, 5)
+
+            pygame.draw.circle(screen, [255, 255, 255], midpoint, 5)
+
+            if points[index][3] == "passthrough": # makes the out handle yellow if it is passthrough point, red if it is turning
+                pygame.draw.circle(screen, [255, 255, 0], handle2, 5)
             elif points[index][3] == "turning":
-                pygame.draw.circle(screen, [0, 255, 0], handle1, 5)
+                pygame.draw.circle(screen, [255, 0, 0], handle2, 5)
+            elif points[index][3] == "reflex":
+                pygame.draw.circle(screen, [0, 0, 255], handle2, 5)
 
-        pygame.draw.circle(screen, [255, 255, 255], midpoint, 5)
+    elif version == "legacy": # alternate version that works with only linear segments
+        reverse = initialReverse
+        linearLengths = []
+        for dotIndex, dot in enumerate(linearPoints):
+            pygame.draw.circle(screen, [255, 255, 255], convertCoords(dot, "f"), 5)
+            if selector == "edit":
+                if pointSelected == index:
+                    dot[0], dot[1] = convertCoords(pygame.mouse.get_pos(), "b")
 
-        if points[index][3] == "passthrough": # makes the out handle yellow if it is passthrough point, red if it is turning
-            pygame.draw.circle(screen, [255, 255, 0], handle2, 5)
-        elif points[index][3] == "turning":
-            pygame.draw.circle(screen, [255, 0, 0], handle2, 5)
-        elif points[index][3] == "reflex":
-            pygame.draw.circle(screen, [0, 0, 255], handle2, 5)
 
     # detects if any GUI elements are interacted with, using GUI library
     if skillsButton.isClicked():
@@ -461,7 +491,10 @@ while running:
         initialReverse = True
     elif startForward.isClicked():
         initialReverse = False
-    elif addPTButton.isClicked():
+    elif addPointButton.isClicked() and version == "legacy":
+        if not linearPoints[len(linearPoints) - 1] == [0.5,0.5]:
+            linearPoints.append([0.5,0.5])
+    elif addPTButton.isClicked() and version == "bezier":
         if not points[len(points) - 1][0] == [0.4,0.4]:
             points.append([[0.4,0.4],[0.5,0.5],[0.6,0.6], "passthrough"])
     elif addTurnButton.isClicked():
@@ -512,7 +545,10 @@ while running:
     if pygame.mouse.get_pressed()[0]:
         detectClosestPoint() # runs code to allow points to detect when clicked, so they may be dragged around
     elif not pygame.mouse.get_pressed()[0]:
-        pointSelected = [0,0]
+        if version == "bezier":
+            pointSelected = [0,0]
+        elif version == "legacy":
+            pointSelected = None
 
     # runs framerate wait time
     clock.tick(fps)
