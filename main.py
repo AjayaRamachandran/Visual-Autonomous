@@ -46,6 +46,9 @@ pointSelected = [0, 0]
 selector = "edit"
 initialReverse = False
 totalCurve = []
+version = "bezier"
+pressingVersionSwitch = False
+pressingExport = False
 
 POINTSPACING = 0.03472222222
 SAMPLINGRESOLUTION = 500
@@ -81,15 +84,41 @@ autonButton = gui.Button(
     fontSize=26
     )
 
+legacyMode = gui.Button(
+    name="legacy_button",
+    width=510,
+    height=60,
+    cornerRadius = 15,
+    color=[100, 100, 115],
+    text="Legacy Mode",
+    x=1175,
+    y=160,
+    scale=1,
+    fontSize=26
+    )
+
+bezierMode = gui.Button(
+    name="bezier_button",
+    width=510,
+    height=60,
+    cornerRadius = 15,
+    color=[100, 150, 100],
+    text="Bezier Mode",
+    x=1175,
+    y=160,
+    scale=1,
+    fontSize=26
+    )
+
 addPTButton = gui.Button(
     name="passthrough_button",
     width=510,
     height=60,
     cornerRadius = 15,
-    color=[100, 120, 100],
+    color=[100, 100, 105],
     text="Add Passthrough Point",
     x=1175,
-    y=200,
+    y=260,
     scale=1,
     fontSize=26
     )
@@ -102,7 +131,7 @@ addTurnButton = gui.Button(
     color=[100, 120, 100],
     text="Add Turning Point",
     x=1175,
-    y=270,
+    y=330,
     scale=1,
     fontSize=26
     )
@@ -115,7 +144,7 @@ addReflexButton = gui.Button(
     color=[100, 120, 100],
     text="Add Reflex Point",
     x=1175,
-    y=340,
+    y=400,
     scale=1,
     fontSize=26
     )
@@ -128,7 +157,7 @@ deleteButton = gui.Button(
     color=[120, 100, 100],
     text="Delete Point",
     x=1175,
-    y=480,
+    y=535,
     scale=1,
     fontSize=26
     )
@@ -167,7 +196,7 @@ exportWaypoints = gui.Button(
     color=[148, 132, 84],
     text="Export",
     x=1045,
-    y=620,
+    y=670,
     scale=1,
     fontSize=26
     )
@@ -180,7 +209,7 @@ exportAsFile = gui.Button(
     color=[148, 120, 84],
     text="Save",
     x=1305,
-    y=620,
+    y=670,
     scale=1,
     fontSize=26
     )
@@ -193,7 +222,7 @@ importer = gui.Button(
     color=[106, 124, 128],
     text="Load",
     x=1175,
-    y=690,
+    y=740,
     scale=1,
     fontSize=26
     )
@@ -295,6 +324,10 @@ while running:
     # draws all the GUI elements to the screen using the GUI library
     skillsButton.draw(screen, mode=int(mode=="skills"))
     autonButton.draw(screen, mode=int(mode=="auton"))
+    if version == "legacy":
+        bezierMode.draw(screen)
+    elif version == "bezier":
+        legacyMode.draw(screen)
     addPTButton.draw(screen)
     addTurnButton.draw(screen)
     addReflexButton.draw(screen)
@@ -447,8 +480,16 @@ while running:
         pressingExport = True
     elif importer.isClicked():
         openFile()
-    elif not exportWaypoints.isClicked() and not exportAsFile.isClicked():
+    elif bezierMode.isClicked() and not pressingVersionSwitch and version == "bezier":
+        version = "legacy"
+        pressingVersionSwitch = True
+    elif legacyMode.isClicked() and not pressingVersionSwitch and version == "legacy":
+        version = "bezier"
+        pressingVersionSwitch = True
+    if not exportWaypoints.isClicked() and not exportAsFile.isClicked():
         pressingExport = False
+    if not legacyMode.isClicked or not bezierMode.isClicked():
+        pressingVersionSwitch = False
 
     for index, group in enumerate(points): # detects if any points are deleted
         for dotIndex, dot in enumerate(group):
