@@ -89,7 +89,7 @@ legacyMode = gui.Button(
     width=510,
     height=60,
     cornerRadius = 15,
-    color=[100, 100, 115],
+    color=[150, 100, 100],
     text="Legacy Mode",
     x=1175,
     y=150,
@@ -119,6 +119,19 @@ addPointButton = gui.Button(
     text="Add Point",
     x=1175,
     y=260,
+    scale=1,
+    fontSize=26
+    )
+
+addReversePointButton = gui.Button(
+    name="point_button",
+    width=510,
+    height=60,
+    cornerRadius = 15,
+    color=[100, 120, 100],
+    text="Add Reverse Point",
+    x=1175,
+    y=330,
     scale=1,
     fontSize=26
     )
@@ -246,7 +259,7 @@ points = [
     [[0.2,0.2],[0.3,0.3],[0.2,0.2], "reflex"]
 ]
 
-linearPoints = [[0.3, 0.3]]
+linearPoints = [[[0.15, 0.15], "f"]]
 
 ###### FUNCTIONS ######
 
@@ -273,14 +286,16 @@ def detectClosestPoint(): # function to detect which point on the field is close
     global pointSelected
     mousePos = convertCoords(pygame.mouse.get_pos(), "b")
 
-    for index, group in enumerate(points):
-        for selectIndex, point in enumerate(group):
-            if selectIndex < 3:
-                if dist(point, mousePos) < 0.01 and pointSelected == [0,0]:
-                    if version == "bezier":
+    if version == "bezier":
+        for index, group in enumerate(points):
+            for selectIndex, point in enumerate(group):
+                if selectIndex < 3:
+                    if dist(point, mousePos) < 0.01 and pointSelected == [0,0]:
                         pointSelected = [index, selectIndex]
-                    if version == "legacy":
-                        pointSelected = index
+    elif version == "legacy":
+        for index, dot in enumerate(linearPoints):
+            if dist(dot[0], mousePos) < 0.01 and pointSelected == None:
+                pointSelected = index
 
 def generateOutput(): # generates a text file that contains the path data
     output = open("output.txt", "w")
@@ -345,6 +360,7 @@ while running:
     if version == "legacy":
         bezierMode.draw(screen)
         addPointButton.draw(screen)
+        addReversePointButton.draw(screen)
     elif version == "bezier":
         legacyMode.draw(screen)
         addPTButton.draw(screen)
@@ -474,12 +490,32 @@ while running:
 
     elif version == "legacy": # alternate version that works with only linear segments
         reverse = initialReverse
-        linearLengths = []
+        pointInfos = []
         for dotIndex, dot in enumerate(linearPoints):
-            pygame.draw.circle(screen, [255, 255, 255], convertCoords(dot, "f"), 5)
+            if dotIndex == 0 and not len(linearPoints) == 1:
+                None
+            if dotIndex == len(linearPoints) - 1:
+                None
+            else:
+                angle = degrees(dir(dot[0], linearPoints[dotIndex + 1][0]) - dir(linearPoints[dotIndex - 1][0], dot[0]))
+                while angle > 180:
+                    angle -= 360
+                while angle < -180:
+                    angle += 360
+                pointInfos.append([angle, dist(dot[0], linearPoints[dotIndex + 1][0])])
+            if dot[1] == "f":
+                pygame.draw.circle(screen, [255, 255, 255], convertCoords(dot[0], "f"), 5)
+            else:
+                pygame.draw.circle(screen, [255, 0, 0], convertCoords(dot[0], "f"), 5)
+                reverse = not reverse
+            if dotIndex != len(linearPoints) - 1:
+                if reverse:
+                    pygame.draw.aaline(screen, (80, 80, 80), convertCoords(dot[0], "f"), convertCoords(linearPoints[dotIndex + 1][0], "f"))
+                else:
+                    pygame.draw.aaline(screen, (255, 255, 255), convertCoords(dot[0], "f"), convertCoords(linearPoints[dotIndex + 1][0], "f"))
             if selector == "edit":
-                if pointSelected == index:
-                    dot[0], dot[1] = convertCoords(pygame.mouse.get_pos(), "b")
+                if pointSelected == dotIndex:
+                    dot[0] = convertCoords(pygame.mouse.get_pos(), "b")
 
 
     # detects if any GUI elements are interacted with, using GUI library
@@ -492,21 +528,28 @@ while running:
     elif startForward.isClicked():
         initialReverse = False
     elif addPointButton.isClicked() and version == "legacy":
-        if not linearPoints[len(linearPoints) - 1] == [0.5,0.5]:
-            linearPoints.append([0.5,0.5])
+        if not linearPoints[len(linearPoints) - 1][0] == [0.5,0.5]:
+            linearPoints.append([[0.5,0.5], "f"])
+    elif addReversePointButton.isClicked() and version == "legacy":
+        if not linearPoints[len(linearPoints) - 1][0] == [0.5,0.5]:
+            linearPoints.append([[0.5,0.5], "r"])
     elif addPTButton.isClicked() and version == "bezier":
         if not points[len(points) - 1][0] == [0.4,0.4]:
             points.append([[0.4,0.4],[0.5,0.5],[0.6,0.6], "passthrough"])
-    elif addTurnButton.isClicked():
+    elif addTurnButton.isClicked() and version == "bezier":
         if not points[len(points) - 1][0] == [0.4,0.4]:
             points.append([[0.4,0.4],[0.5,0.5],[0.6,0.6], "turning"])
-    elif addReflexButton.isClicked():
+    elif addReflexButton.isClicked() and version == "bezier":
         if not points[len(points) - 1][0] == [0.4,0.4]:
             points.append([[0.4,0.4],[0.5,0.5],[0.4,0.4], "reflex"])
     elif deleteButton.isClicked():
         selector = "delete"
     elif exportWaypoints.isClicked() and not pressingExport:
-        generateOutput()
+        if version == "bezier":
+            generateOutput()
+        elif version == "legacy":
+            pointInfos[0][0] = 0
+            print(pointInfos)
         pressingExport = True
     elif exportAsFile.isClicked() and not pressingExport:
         generateFile()
@@ -515,6 +558,7 @@ while running:
         openFile()
     elif bezierMode.isClicked() and not pressingVersionSwitch and version == "bezier":
         version = "legacy"
+        pointSelected = None
         pressingVersionSwitch = True
     elif legacyMode.isClicked() and not pressingVersionSwitch and version == "legacy":
         version = "bezier"
