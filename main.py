@@ -332,23 +332,28 @@ def generateOutput(): # generates a text file that contains the path data
         output = open("output.txt", "w")
         for line, pair in enumerate(pointInfos):
             # TURNING COMMAND
+            needToEnter = False
             if line != 0:
                 output.write("PIDcommand('t', " + str(np.float32(pair[0])) + "); ")
-                # TURNING COMMENTS
-                if line != len(pointInfos) - 1:
-                    None
+                needToEnter = True
+            # TURNING COMMENTS
             coords = linearPoints[line][0]
             nextCoords = linearPoints[line + 1][0]
             print(degrees(dir(coords, nextCoords)))
             if abs(degrees(dir(coords, (0, 0.5))) - degrees(dir(coords, nextCoords))) < 30 and coords[0] < 0.5:
                 output.write("// Bot points toward blue goal")
+                needToEnter = True
             if abs(degrees(dir(coords, (1, 0.5))) - degrees(dir(coords, nextCoords))) < 30 and coords[0] > 0.5:
                 output.write("// Bot points toward red goal")
+                needToEnter = True
             if (-70 < degrees(dir(coords, nextCoords)) < 70) and coords[0] < 0.5 and 0.15 < nextCoords[1] < 0.85:
                 output.write("// Bot points toward center pipe from blue goal side")
+                needToEnter = True
             if (110 < degrees(dir(coords, nextCoords)) < 180 or -180 < degrees(dir(coords, nextCoords)) < -110) and coords[0] > 0.5 and 0.15 < nextCoords[1] < 0.85:
                 output.write("// Bot points toward center pipe from red goal side")
-            output.write("\n")
+                needToEnter = True
+            if needToEnter:
+                output.write("\n")
 
             # LATERAL MOVEMENT COMMENTS
             if 0 < coords[0] < 0.3 and 0.15 < coords[1] < 0.85:
@@ -377,20 +382,34 @@ def generateOutput(): # generates a text file that contains the path data
         io.showOutput("output.txt") # shows the text file to the screen using subprocess
 
 def generateFile():
-    filename = asksaveasfile(initialfile = 'my_path.robopath', mode='wb',defaultextension=".robopath", filetypes=[("Robot Autonomous Path","*.robopath")])
-    myPath = open("my_path.robopath", "wb")
-    pkl.dump(points, myPath, -1)
-    myPath = open("my_path.robopath", "rb")
+    if version == "bezier":
+        filename = asksaveasfile(initialfile = 'Untitled.robopath', mode='wb',defaultextension=".robopath", filetypes=[("Autonomous Pursuit Path File","*.robopath")])
+        myPath = open("LocalFile.robopath", "wb")
+        pkl.dump(points, myPath, -1)
+        myPath = open("LocalFile.robopath", "rb")
+    elif version == "legacy":
+        filename = asksaveasfile(initialfile = 'Untitled.m2p', mode='wb',defaultextension=".m2p", filetypes=[("Move to Point File","*.m2p")])
+        myPath = open("LocalFile.m2p", "wb")
+        pkl.dump(linearPoints, myPath, -1)
+        myPath = open("LocalFile.m2p", "rb")
 
     pathBytes = bytearray(myPath.read())
     filename.write(pathBytes)
     filename.close()
 
 def openFile():
-    global points
+    global points, linearPoints, version
     filename = askopenfilename()
-    file = open(filename, 'rb')
-    points = pkl.load(file)
+    #print(filename)
+    if filename != "":
+        file = open(filename, 'rb')
+        if filename[-3:] == "ath":
+            points = pkl.load(file)
+            version = "bezier"
+        elif filename[-3:] == "m2p":
+            linearPoints = pkl.load(file)
+            version = "legacy"
+
 
 ###### MAINLOOP ######
 
