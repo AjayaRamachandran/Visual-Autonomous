@@ -333,41 +333,45 @@ def generateOutput(): # generates a text file that contains the path data
         for line, pair in enumerate(pointInfos):
             # TURNING COMMAND
             if line != 0:
-                output.write("PIDcommand('t', " + str(np.float32(pair[0])) + ");")
+                output.write("PIDcommand('t', " + str(np.float32(pair[0])) + "); ")
                 # TURNING COMMENTS
                 if line != len(pointInfos) - 1:
                     None
             coords = linearPoints[line][0]
             nextCoords = linearPoints[line + 1][0]
-
+            print(degrees(dir(coords, nextCoords)))
             if abs(degrees(dir(coords, (0, 0.5))) - degrees(dir(coords, nextCoords))) < 30 and coords[0] < 0.5:
-                output.write(" // Bot points toward blue goal")
+                output.write("// Bot points toward blue goal")
             if abs(degrees(dir(coords, (1, 0.5))) - degrees(dir(coords, nextCoords))) < 30 and coords[0] > 0.5:
-                output.write(" // Bot points toward red goal")
-            if 0 < degrees(dir(coords, nextCoords)) < 70 or 290 < degrees(dir(coords, nextCoords)) <= 360 and coords[0] < 0.5 and 0.15 < nextCoords[1] < 0.85:
-                output.write(" // Bot points toward center pipe from blue defensive zone")
-            if 110 < degrees(dir(coords, nextCoords)) < 250 and coords[0] > 0.5 and 0.15 < nextCoords[1] < 0.85:
-                output.write(" // Bot points toward center pipe from blue offensive zone")
+                output.write("// Bot points toward red goal")
+            if (-70 < degrees(dir(coords, nextCoords)) < 70) and coords[0] < 0.5 and 0.15 < nextCoords[1] < 0.85:
+                output.write("// Bot points toward center pipe from blue goal side")
+            if (110 < degrees(dir(coords, nextCoords)) < 180 or -180 < degrees(dir(coords, nextCoords)) < -110) and coords[0] > 0.5 and 0.15 < nextCoords[1] < 0.85:
+                output.write("// Bot points toward center pipe from red goal side")
             output.write("\n")
 
+            # LATERAL MOVEMENT COMMENTS
+            if 0 < coords[0] < 0.3 and 0.15 < coords[1] < 0.85:
+                output.write("// Bot starts near blue goal\n")
+            if 0.7 < coords[0] < 1 and 0.15 < coords[1] < 0.85:
+                output.write("// Bot starts near red goal\n")
+            if 0 < coords[0] < 0.15 and (0 < coords[1] < 0.15 or 0 < coords[1] > 0.85):
+                output.write("// Bot starts near red match load zone\n")
+            if 0 < coords[0] > 0.85 and (0 < coords[1] < 0.15 or 0 < coords[1] > 0.85):
+                output.write("// Bot starts near blue match load zone\n")
+            # LATERAL COMMAND
+            output.write("PIDcommand('l', " + str(np.float32(pair[1] * 144)) + "); ")
+            needToEnter = True
             # LATERAL COMMENTS
             if line != 0:
                 if coords[0] < 0.5 and nextCoords[0] >= 0.5:
-                    output.write(" // Bot crosses underpass from blue goal side to red goal side\n")
-                if coords[0] < 0.5 and nextCoords[0] <= 0.5:
-                    output.write(" // Bot crosses underpass from red goal side to blue goal side\n")
-            if 0 < coords[0] < 0.3 and 0.15 < coords[1] < 0.85:
-                output.write("// Bot is near blue goal\n")
-            if 0.7 < coords[0] < 1 and 0.15 < coords[1] < 0.85:
-                output.write("// Bot is near red goal\n")
-            if 0 < coords[0] < 0.15 and (0 < coords[1] < 0.15 or 0 < coords[1] > 0.85):
-                output.write("// Bot near red match load zone\n")
-            if 0 < coords[0] > 0.85 and (0 < coords[1] < 0.15 or 0 < coords[1] > 0.85):
-                output.write("// Bot near blue match load zone\n")
-            # LATERAL COMMAND
-            output.write("PIDcommand('l', " + str(np.float32(pair[1] * 144)) + ");\n")
-            # LATERAL MOVEMENT COMMENTS
-            output.write("\n")
+                    output.write("// Bot crosses underpass from blue goal side to red goal side\n")
+                    needToEnter = False
+                if coords[0] > 0.5 and nextCoords[0] <= 0.5:
+                    output.write("// Bot crosses underpass from red goal side to blue goal side\n")
+                    needToEnter = False
+            if needToEnter:
+                output.write("\n")
 
         output.close()
         io.showOutput("output.txt") # shows the text file to the screen using subprocess
