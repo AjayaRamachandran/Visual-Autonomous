@@ -298,35 +298,79 @@ def detectClosestPoint(): # function to detect which point on the field is close
                 pointSelected = index
 
 def generateOutput(): # generates a text file that contains the path data
-    output = open("output.txt", "w")
-    output.write("float coordinates[][2] = {")
-    lengths = []
-    for index1, curve in enumerate(totalCurve): # structure of file is a list of points (the waypoints), then a second list which contains the arclengths between the handles
-        for index2, point in enumerate(curve):
-            output.write("{" + f"{np.float16(point[0] * 144)}, {np.float16(144 - point[1] * 144)}" + "}")
-            if index2 == len(curve) - 1 and index1 == len(totalCurve) - 1:
-                output.write("")
-            else:
+    if version == "bezier":
+        output = open("output.txt", "w")
+        output.write("float coordinates[][2] = {")
+        lengths = []
+        for index1, curve in enumerate(totalCurve): # structure of file is a list of points (the waypoints), then a second list which contains the arclengths between the handles
+            for index2, point in enumerate(curve):
+                output.write("{" + f"{np.float16(point[0] * 144)}, {np.float16(144 - point[1] * 144)}" + "}")
+                if index2 == len(curve) - 1 and index1 == len(totalCurve) - 1:
+                    output.write("")
+                else:
+                    output.write(",")
+            lengths.append(len(curve))
+        output.write("};\n")
+        output.write("float thetas[] = {")
+        for index1, curve in enumerate(totalThetas): # structure of file is a list of points (the waypoints), then a second list which contains the arclengths between the handles
+            for index2, theta in enumerate(curve):
+                output.write(f"{np.float16(theta)}")
+                if index2 == len(curve) - 1 and index1 == len(totalCurve) - 1:
+                    output.write("")
+                else:
+                    output.write(",")
+        output.write("};\n")
+        output.write("int curveLengths[] = {")
+        for index, length in enumerate(lengths):
+            output.write(f"{int(length)}")
+            if index != len(lengths) - 1:
                 output.write(",")
-        lengths.append(len(curve))
-    output.write("};\n")
-    output.write("float thetas[] = {")
-    for index1, curve in enumerate(totalThetas): # structure of file is a list of points (the waypoints), then a second list which contains the arclengths between the handles
-        for index2, theta in enumerate(curve):
-            output.write(f"{np.float16(theta)}")
-            if index2 == len(curve) - 1 and index1 == len(totalCurve) - 1:
-                output.write("")
-            else:
-                output.write(",")
-    output.write("};\n")
-    output.write("int curveLengths[] = {")
-    for index, length in enumerate(lengths):
-        output.write(f"{int(length)}")
-        if index != len(lengths) - 1:
-            output.write(",")
-    output.write("};\n")
-    output.close()
-    io.showOutput("output.txt") # shows the text file to the screen using subprocess
+        output.write("};\n")
+        output.close()
+        io.showOutput("output.txt") # shows the text file to the screen using subprocess
+    elif version == "legacy":
+        output = open("output.txt", "w")
+        for line, pair in enumerate(pointInfos):
+            # TURNING COMMAND
+            if line != 0:
+                output.write("PIDcommand('t', " + str(np.float32(pair[0])) + ");")
+                # TURNING COMMENTS
+                if line != len(pointInfos) - 1:
+                    None
+            coords = linearPoints[line][0]
+            nextCoords = linearPoints[line + 1][0]
+
+            if abs(degrees(dir(coords, (0, 0.5))) - degrees(dir(coords, nextCoords))) < 30 and coords[0] < 0.5:
+                output.write(" // Bot points toward blue goal")
+            if abs(degrees(dir(coords, (1, 0.5))) - degrees(dir(coords, nextCoords))) < 30 and coords[0] > 0.5:
+                output.write(" // Bot points toward red goal")
+            if 0 < degrees(dir(coords, nextCoords)) < 70 or 290 < degrees(dir(coords, nextCoords)) <= 360 and coords[0] < 0.5 and 0.15 < nextCoords[1] < 0.85:
+                output.write(" // Bot points toward center pipe from blue defensive zone")
+            if 110 < degrees(dir(coords, nextCoords)) < 250 and coords[0] > 0.5 and 0.15 < nextCoords[1] < 0.85:
+                output.write(" // Bot points toward center pipe from blue offensive zone")
+            output.write("\n")
+
+            # LATERAL COMMENTS
+            if line != 0:
+                if coords[0] < 0.5 and nextCoords[0] >= 0.5:
+                    output.write(" // Bot crosses underpass from blue goal side to red goal side\n")
+                if coords[0] < 0.5 and nextCoords[0] <= 0.5:
+                    output.write(" // Bot crosses underpass from red goal side to blue goal side\n")
+            if 0 < coords[0] < 0.3 and 0.15 < coords[1] < 0.85:
+                output.write("// Bot is near blue goal\n")
+            if 0.7 < coords[0] < 1 and 0.15 < coords[1] < 0.85:
+                output.write("// Bot is near red goal\n")
+            if 0 < coords[0] < 0.15 and (0 < coords[1] < 0.15 or 0 < coords[1] > 0.85):
+                output.write("// Bot near red match load zone\n")
+            if 0 < coords[0] > 0.85 and (0 < coords[1] < 0.15 or 0 < coords[1] > 0.85):
+                output.write("// Bot near blue match load zone\n")
+            # LATERAL COMMAND
+            output.write("PIDcommand('l', " + str(np.float32(pair[1] * 144)) + ");\n")
+            # LATERAL MOVEMENT COMMENTS
+            output.write("\n")
+
+        output.close()
+        io.showOutput("output.txt") # shows the text file to the screen using subprocess
 
 def generateFile():
     filename = asksaveasfile(initialfile = 'my_path.robopath', mode='wb',defaultextension=".robopath", filetypes=[("Robot Autonomous Path","*.robopath")])
@@ -545,11 +589,9 @@ while running:
     elif deleteButton.isClicked():
         selector = "delete"
     elif exportWaypoints.isClicked() and not pressingExport:
-        if version == "bezier":
-            generateOutput()
-        elif version == "legacy":
+        if version == "legacy":
             pointInfos[0][0] = 0
-            print(pointInfos)
+        generateOutput()
         pressingExport = True
     elif exportAsFile.isClicked() and not pressingExport:
         generateFile()
@@ -568,14 +610,22 @@ while running:
     if not legacyMode.isClicked or not bezierMode.isClicked():
         pressingVersionSwitch = False
 
-    for index, group in enumerate(points): # detects if any points are deleted
-        for dotIndex, dot in enumerate(group):
-            if pointSelected == [index, dotIndex]:
+    if version == "bezier":
+        for index, group in enumerate(points): # detects if any points are deleted (bezier mode)
+            for dotIndex, dot in enumerate(group):
+                if pointSelected == [index, dotIndex]:
+                    if selector == "delete" and not index == 0:
+                        points.pop(index)
+                        selector = "edit"
+                        pointSelected = [0,0]
+
+    if version == "legacy":
+        for index, point in enumerate(linearPoints): # detects if any points are deleted (legacy mode)
+            if pointSelected == index:
                 if selector == "delete" and not index == 0:
-                    points.pop(index)
+                    linearPoints.pop(index)
                     selector = "edit"
-                    pointSelected = [0,0]
-                    print(len(points))
+                    pointSelected = None
 
     if selector == "delete": # shows little delete icon on mouse when in delete mode
         delete_rect.centery = pygame.mouse.get_pos()[1]
