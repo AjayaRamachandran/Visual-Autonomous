@@ -572,6 +572,8 @@ while running:
                 pygame.draw.circle(screen, [0, 0, 255], handle2, 5)
 
     elif version == "legacy": # alternate version that works with only linear segments
+        if len(linearPoints) > 1:
+            drawRobot(position = linearPoints[0][0], direction = dir(linearPoints[0][0], linearPoints[1][0]))
         reverse = initialReverse
         pointInfos = []
         for dotIndex, dot in enumerate(linearPoints):
