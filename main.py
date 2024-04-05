@@ -297,7 +297,7 @@ def detectClosestPoint(): # function to detect which point on the field is close
             if dist(dot[0], mousePos) < 0.01 and pointSelected == None:
                 pointSelected = index
 
-def drawRobot(position, direction):
+def drawRobot(position, direction, drawMeasuringTape, color=[50,50,50], thickness=5):
     distance = 12.042 / 144
     fr = 0.84415
     fl = 2.29743
@@ -308,31 +308,31 @@ def drawRobot(position, direction):
     rightBack = convertCoords([position[0] + distance * cos(br + direction + pi/2), position[1] + distance * sin(br + direction + pi/2)], "f")
     leftFront = convertCoords([position[0] + distance * cos(fl + direction + pi/2), position[1] + distance * sin(fl + direction + pi/2)], "f")
     rightFront = convertCoords([position[0] + distance * cos(fr + direction + pi/2), position[1] + distance * sin(fr + direction + pi/2)], "f")
-    pygame.draw.polygon(screen, (50, 50, 50), [leftBack, rightBack, rightFront, leftFront], 3)
+    pygame.draw.polygon(screen, color, [leftBack, rightBack, rightFront, leftFront], thickness)
 
+    if drawMeasuringTape:
+        fourPoints = [leftBack, rightBack, leftFront, rightFront]
+        for coordinate in fourPoints:
+            if position[1] < 0.5:
+                verticalCorner = min(fourPoints, key=lambda x: x[1])
+                verticalDestination = convertCoords([0, 0], "f")[1]
+            else:
+                verticalCorner = max(fourPoints, key=lambda x: x[1])
+                verticalDestination = convertCoords([0, 1], "f")[1]
+            if position[0] < 0.5:
+                horizontalCorner = min(fourPoints, key=lambda x: x[0])
+                horizontalDestination = convertCoords([0, 0], "f")[0]
+            else:
+                horizontalCorner = max(fourPoints, key=lambda x: x[0])
+                horizontalDestination = convertCoords([1, 0], "f")[0]
 
-    fourPoints = [leftBack, rightBack, leftFront, rightFront]
-    for coordinate in fourPoints:
-        if position[1] < 0.5:
-            verticalCorner = min(fourPoints, key=lambda x: x[1])
-            verticalDestination = convertCoords([0, 0], "f")[1]
-        else:
-            verticalCorner = max(fourPoints, key=lambda x: x[1])
-            verticalDestination = convertCoords([0, 1], "f")[1]
-        if position[0] < 0.5:
-            horizontalCorner = min(fourPoints, key=lambda x: x[0])
-            horizontalDestination = convertCoords([0, 0], "f")[0]
-        else:
-            horizontalCorner = max(fourPoints, key=lambda x: x[0])
-            horizontalDestination = convertCoords([1, 0], "f")[0]
+        pygame.draw.line(screen, (255,255,0), verticalCorner, (verticalCorner[0], verticalDestination), 3)
+        topDistanceText = font.render(str(round(1000*dist(verticalCorner, (verticalCorner[0], verticalDestination)) / 900 * 144)/1000) + '"', True, (255, 255, 255))
+        screen.blit(topDistanceText, (verticalCorner[0] + 5, (verticalDestination + verticalCorner[1])/2 - 7))
 
-    pygame.draw.line(screen, (255,255,0), verticalCorner, (verticalCorner[0], verticalDestination), 3)
-    topDistanceText = font.render(str(round(1000*dist(verticalCorner, (verticalCorner[0], verticalDestination)) / 900 * 144)/1000) + '"', True, (255, 255, 255))
-    screen.blit(topDistanceText, (verticalCorner[0] + 5, (verticalDestination + verticalCorner[1])/2 - 7))
-
-    pygame.draw.line(screen, (255,255,0), (horizontalDestination, horizontalCorner[1]), horizontalCorner, 3)
-    leftDistanceText = font.render(str(round(1000*dist(horizontalCorner, (horizontalDestination, horizontalCorner[1])) / 900 * 144)/1000) + '"', True, (255, 255, 255))
-    screen.blit(leftDistanceText, ((horizontalDestination + horizontalCorner[0])/2 - 20, horizontalCorner[1]))
+        pygame.draw.line(screen, (255,255,0), (horizontalDestination, horizontalCorner[1]), horizontalCorner, 3)
+        leftDistanceText = font.render(str(round(1000*dist(horizontalCorner, (horizontalDestination, horizontalCorner[1])) / 900 * 144)/1000) + '"', True, (255, 255, 255))
+        screen.blit(leftDistanceText, ((horizontalDestination + horizontalCorner[0])/2 - 20, horizontalCorner[1]))
 
     
 def generateOutput(): # generates a text file that contains the path data
@@ -487,11 +487,11 @@ while running:
 
     ### Draws Curves ###
     if version == "bezier":
-        drawRobot(position = points[0][1], direction = dir(points[0][1], points[0][2]))
         reverse = initialReverse
         totalCurve = []
         totalThetas = []
         for index, group in enumerate(points):
+            drawRobot(position = points[index][1], direction = dir(points[index][1], points[index][2]), drawMeasuringTape=index == 0)
             if not index == len(points) - 1:
                 point1 = points[index][1] # point 1 is the starting point
                 point2 = points[index][2] # point 2 is the first handle (off of the first point)
@@ -534,6 +534,8 @@ while running:
                     directionOfPath = dir((0,0),(dx,dy)) + pi/2 # direction of the derivative is calculated, which is the direction the point is "facing"
 
                     thetas.append(directionOfPath)
+                    if tValue != 0:
+                        drawRobot(position = [x,y], direction = directionOfPath + pi/2, drawMeasuringTape=False, color=(33,33,33), thickness = 1)
                     pointCoords.append([x, y])
                     blitX, blitY = convertCoords([x, y], "f")
                     if reverse:
@@ -602,11 +604,11 @@ while running:
                 pygame.draw.circle(screen, [0, 0, 255], handle2, 5)
 
     elif version == "legacy": # alternate version that works with only linear segments
-        if len(linearPoints) > 1:
-            drawRobot(position = linearPoints[0][0], direction = dir(linearPoints[0][0], linearPoints[1][0]))
         reverse = initialReverse
         pointInfos = []
         for dotIndex, dot in enumerate(linearPoints):
+            if dotIndex < len(linearPoints) - 1:
+                drawRobot(position = linearPoints[dotIndex][0], direction = dir(linearPoints[dotIndex][0], linearPoints[dotIndex + 1][0]), drawMeasuringTape = False)
             if dotIndex == 0 and not len(linearPoints) == 1:
                 None
             if dotIndex == len(linearPoints) - 1:
