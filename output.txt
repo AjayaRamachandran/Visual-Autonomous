@@ -1,12 +1,12 @@
-PIDcommand('l', 18.08); 
-PIDcommand('t', -38.30577); // Bot points toward center pipe from blue goal side
+// Bot points toward center pipe from blue goal side
+PIDcommand('l', 43.21896); 
+PIDcommand('t', 89); 
+PIDcommand('l', 41.57353); 
+PIDcommand('t', -26); 
 // Bot starts near blue goal
-PIDcommand('l', 48.527237); 
-PIDcommand('t', 124.67556); // Bot points toward blue goal
-PIDcommand('l', 53.06648); 
-PIDcommand('t', -155.78893); // Bot points toward center pipe from blue goal side
+PIDcommand('l', 30.400421); 
+PIDcommand('t', 6.012147); 
 // Bot starts near blue goal
-PIDcommand('l', 129.71906); // Bot crosses underpass from blue goal side to red goal side
-PIDcommand('t', -110.58086); // Bot points toward red goal
-// Bot starts near red goal
-PIDcommand('l', 24.48); 
+PIDcommand('l', -30.551622); 
+PIDcommand('t', 268.2346); // Bot points toward center pipe from blue goal side
+PIDcommand('l', -41.85919); // Bot crosses underpass from blue goal side to red goal side

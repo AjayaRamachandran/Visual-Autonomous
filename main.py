@@ -365,7 +365,11 @@ def generateOutput(): # generates a text file that contains the path data
             # TURNING COMMAND
             needToEnter = False
             if line != 0:
-                output.write("PIDcommand('t', " + str(np.float32(pair[0])) + "); ")
+                if reversing:
+                    newDir = np.float32(pair[0] + 180 - int(pair[0] + 180 >= 360)* 360)
+                    output.write("PIDcommand('t', " + str(newDir) + "); ")
+                else:
+                    output.write("PIDcommand('t', " + str(int(pair[0])) + "); ")
                 needToEnter = True
             # TURNING COMMENTS
             coords = linearPoints[line][0]
