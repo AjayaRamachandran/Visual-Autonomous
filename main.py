@@ -330,7 +330,10 @@ def generateOutput(): # generates a text file that contains the path data
         io.showOutput("output.txt") # shows the text file to the screen using subprocess
     elif version == "legacy":
         output = open("output.txt", "w")
+        reversing = initialReverse
         for line, pair in enumerate(pointInfos):
+            if linearPoints[line][1] == "r":
+                reversing = not reversing
             # TURNING COMMAND
             needToEnter = False
             if line != 0:
@@ -339,7 +342,7 @@ def generateOutput(): # generates a text file that contains the path data
             # TURNING COMMENTS
             coords = linearPoints[line][0]
             nextCoords = linearPoints[line + 1][0]
-            print(degrees(dir(coords, nextCoords)))
+            #print(degrees(dir(coords, nextCoords)))
             if abs(degrees(dir(coords, (0, 0.5))) - degrees(dir(coords, nextCoords))) < 30 and coords[0] < 0.5:
                 output.write("// Bot points toward blue goal")
                 needToEnter = True
@@ -365,7 +368,7 @@ def generateOutput(): # generates a text file that contains the path data
             if 0 < coords[0] > 0.85 and (0 < coords[1] < 0.15 or 0 < coords[1] > 0.85):
                 output.write("// Bot starts near blue match load zone\n")
             # LATERAL COMMAND
-            output.write("PIDcommand('l', " + str(np.float32(pair[1] * 144)) + "); ")
+            output.write("PIDcommand('l', " + str(np.float32(pair[1] * 144 * ((int(not reversing) - 0.5) * 2))) + "); ")
             needToEnter = True
             # LATERAL COMMENTS
             if line != 0:
