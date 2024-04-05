@@ -303,28 +303,26 @@ def drawRobot(position, direction):
     fl = 2.29743
     br = -0.84415
     bl = -2.29743
-    topCorner = [9999,9999]
-    leftCorner = [9999,9999]
+
     leftBack = convertCoords([position[0] + distance * cos(bl + direction + pi/2), position[1] + distance * sin(bl + direction + pi/2)], "f")
     rightBack = convertCoords([position[0] + distance * cos(br + direction + pi/2), position[1] + distance * sin(br + direction + pi/2)], "f")
     leftFront = convertCoords([position[0] + distance * cos(fl + direction + pi/2), position[1] + distance * sin(fl + direction + pi/2)], "f")
     rightFront = convertCoords([position[0] + distance * cos(fr + direction + pi/2), position[1] + distance * sin(fr + direction + pi/2)], "f")
     pygame.draw.polygon(screen, (50, 50, 50), [leftBack, rightBack, rightFront, leftFront], 3)
 
+'''
     for coordinate in [leftBack, rightBack, leftFront, rightFront]:
-        if coordinate[1] < topCorner[1]:
-            topCorner = coordinate
-        if coordinate[0] < leftCorner[0]:
-            leftCorner = coordinate
+        verticalCorner = [0,0]
 
-    pygame.draw.line(screen, (255,255,0), topCorner, (topCorner[0], convertCoords([0, 0], "f")[1]), 3)
-    topDistanceText = font.render(str(round(1000*dist(topCorner, (topCorner[0], convertCoords([0, 0], "f")[1])) / 900 * 144)/1000) + '"', True, (255, 255, 255))
-    screen.blit(topDistanceText, (topCorner[0] + 5, convertCoords([0, 0], "f")[1] + topCorner[1]/2 - 7))
+    pygame.draw.line(screen, (255,255,0), verticalCorner, (verticalCorner[0], convertCoords([0, 0], "f")[1]), 3)
+    topDistanceText = font.render(str(round(1000*dist(verticalCorner, (verticalCorner[0], convertCoords([0, 0], "f")[1])) / 900 * 144)/1000) + '"', True, (255, 255, 255))
+    screen.blit(topDistanceText, (verticalCorner[0] + 5, convertCoords([0, 0], "f")[1] + verticalCorner[1]/2 - 7))
 
-    pygame.draw.line(screen, (255,255,0), (convertCoords([0, 0], "f")[0], leftCorner[1]), leftCorner, 3)
-    leftDistanceText = font.render(str(round(1000*dist(leftCorner, (convertCoords([0, 0], "f")[0], leftCorner[1])) / 900 * 144)/1000) + '"', True, (255, 255, 255))
-    screen.blit(leftDistanceText, (convertCoords([0, 0], "f")[0] + leftCorner[0]/2 - 20, leftCorner[1]))
-
+    pygame.draw.line(screen, (255,255,0), (convertCoords([0, 0], "f")[0], horizontalCorner[1]), horizontalCorner, 3)
+    leftDistanceText = font.render(str(round(1000*dist(horizontalCorner, (convertCoords([0, 0], "f")[0], horizontalCorner[1])) / 900 * 144)/1000) + '"', True, (255, 255, 255))
+    screen.blit(leftDistanceText, (convertCoords([0, 0], "f")[0] + horizontalCorner[0]/2 - 20, horizontalCorner[1]))
+'''
+    
 def generateOutput(): # generates a text file that contains the path data
     if version == "bezier":
         output = open("output.txt", "w")
@@ -365,7 +363,7 @@ def generateOutput(): # generates a text file that contains the path data
             # TURNING COMMAND
             needToEnter = False
             if line != 0:
-                if reversing:
+                if linearPoints[line][1] == "r":
                     newDir = np.float32(pair[0] + 180 - int(pair[0] + 180 >= 360)* 360)
                     output.write("PIDcommand('t', " + str(newDir) + "); ")
                 else:
