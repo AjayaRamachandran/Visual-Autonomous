@@ -311,8 +311,10 @@ def drawRobot(position, direction):
     pygame.draw.polygon(screen, (50, 50, 50), [leftBack, rightBack, rightFront, leftFront], 3)
 
 '''
-    for coordinate in [leftBack, rightBack, leftFront, rightFront]:
-        verticalCorner = [0,0]
+    fourPoints = [leftBack, rightBack, leftFront, rightFront]
+    for coordinate in fourPoints:
+        if position[0] < 0.5:
+            verticalCorner = min(fourPoints, key=lambda x: x[1])
 
     pygame.draw.line(screen, (255,255,0), verticalCorner, (verticalCorner[0], convertCoords([0, 0], "f")[1]), 3)
     topDistanceText = font.render(str(round(1000*dist(verticalCorner, (verticalCorner[0], convertCoords([0, 0], "f")[1])) / 900 * 144)/1000) + '"', True, (255, 255, 255))
@@ -364,7 +366,7 @@ def generateOutput(): # generates a text file that contains the path data
             needToEnter = False
             if line != 0:
                 if linearPoints[line][1] == "r":
-                    newDir = np.float32(pair[0] + 180 - int(pair[0] + 180 >= 360)* 360)
+                    newDir = np.float32(pair[0] + 180 - int(pair[0] + 180 >= 180)* 360)
                     output.write("PIDcommand('t', " + str(newDir) + "); ")
                 else:
                     output.write("PIDcommand('t', " + str(int(pair[0])) + "); ")
