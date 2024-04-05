@@ -297,18 +297,41 @@ def detectClosestPoint(): # function to detect which point on the field is close
             if dist(dot[0], mousePos) < 0.01 and pointSelected == None:
                 pointSelected = index
 
-def drawRobot(position, direction, drawMeasuringTape, color=[50,50,50], thickness=5):
-    distance = 12.042 / 144
-    fr = 0.84415
-    fl = 2.29743
-    br = -0.84415
-    bl = -2.29743
+def drawRobot(position, direction, drawMeasuringTape, color=[255,255,255], important=True):
+    distance = 11.87697 / 144
+    frontIntakeDistance = sqrt(12**2 + 3.5**2) / 144
+    backIntakeDistance = sqrt(10**2 + 3.5**2) / 144
+    wallRiderDistance = sqrt(11.5**2 + 5**2) / 144
+    fr = 0.85989
+    fl = 2.28171
+    br = -0.85989
+    bl = -2.28171
 
     leftBack = convertCoords([position[0] + distance * cos(bl + direction + pi/2), position[1] + distance * sin(bl + direction + pi/2)], "f")
     rightBack = convertCoords([position[0] + distance * cos(br + direction + pi/2), position[1] + distance * sin(br + direction + pi/2)], "f")
     leftFront = convertCoords([position[0] + distance * cos(fl + direction + pi/2), position[1] + distance * sin(fl + direction + pi/2)], "f")
     rightFront = convertCoords([position[0] + distance * cos(fr + direction + pi/2), position[1] + distance * sin(fr + direction + pi/2)], "f")
-    pygame.draw.polygon(screen, color, [leftBack, rightBack, rightFront, leftFront], thickness)
+    pygame.draw.polygon(screen, color, [leftBack, rightBack, rightFront, leftFront], 1)
+    
+    if important:
+        bir = atan(10/3.5)
+        bil = pi - bir
+        fir = atan(12/3.5)
+        fil = pi - fir
+        wrr = atan(11.5/5)
+        wrl = pi - wrr
+        wallRiderDiameterPx = 6
+
+        backIntakeRight = convertCoords([position[0] + backIntakeDistance * cos(bir + direction - pi/2), position[1] + backIntakeDistance * sin(bir + direction - pi/2)], "f")
+        backIntakeLeft = convertCoords([position[0] + backIntakeDistance * cos(bil + direction - pi/2), position[1] + backIntakeDistance * sin(bil + direction - pi/2)], "f")
+        intakeRight = convertCoords([position[0] + frontIntakeDistance * cos(fir + direction - pi/2), position[1] + frontIntakeDistance * sin(fir + direction - pi/2)], "f")
+        intakeLeft = convertCoords([position[0] + frontIntakeDistance * cos(fil + direction - pi/2), position[1] + frontIntakeDistance * sin(fil + direction - pi/2)], "f")
+        pygame.draw.polygon(screen, (50, 50, 50), [backIntakeRight, backIntakeLeft, intakeLeft, intakeRight])
+
+        wallRiderRight = convertCoords([position[0] + wallRiderDistance * cos(wrr + direction - pi/2), position[1] + wallRiderDistance * sin(wrr + direction - pi/2)], "f")
+        wallRiderLeft = convertCoords([position[0] + wallRiderDistance * cos(wrl + direction - pi/2), position[1] + wallRiderDistance * sin(wrl + direction - pi/2)], "f")
+        pygame.draw.circle(screen, (170, 0, 255), wallRiderRight, wallRiderDiameterPx, 1)
+        pygame.draw.circle(screen, (170, 0, 255), wallRiderLeft, wallRiderDiameterPx, 1)
 
     if drawMeasuringTape:
         fourPoints = [leftBack, rightBack, leftFront, rightFront]
@@ -491,7 +514,7 @@ while running:
         totalCurve = []
         totalThetas = []
         for index, group in enumerate(points):
-            drawRobot(position = points[index][1], direction = dir(points[index][1], points[index][2]), drawMeasuringTape=index == 0)
+            drawRobot(position = points[index][1], direction = dir(points[index][1], points[index][2]), drawMeasuringTape=index == 0, important=True)
             if not index == len(points) - 1:
                 point1 = points[index][1] # point 1 is the starting point
                 point2 = points[index][2] # point 2 is the first handle (off of the first point)
@@ -535,7 +558,7 @@ while running:
 
                     thetas.append(directionOfPath)
                     if tValue != 0:
-                        drawRobot(position = [x,y], direction = directionOfPath + pi/2, drawMeasuringTape=False, color=(33,33,33), thickness = 1)
+                        drawRobot(position = [x,y], direction = directionOfPath + pi/2, drawMeasuringTape=False, color=(33,33,33), important=False)
                     pointCoords.append([x, y])
                     blitX, blitY = convertCoords([x, y], "f")
                     if reverse:
@@ -607,8 +630,8 @@ while running:
         reverse = initialReverse
         pointInfos = []
         for dotIndex, dot in enumerate(linearPoints):
-            if dotIndex < len(linearPoints) - 1:
-                drawRobot(position = linearPoints[dotIndex][0], direction = dir(linearPoints[dotIndex][0], linearPoints[dotIndex + 1][0]), drawMeasuringTape = False)
+            if dotIndex < len(linearPoints) - 1 and (dotIndex == 0 or (pointSelected != None and pointSelected - dotIndex in [-1, 0, 1])):
+                drawRobot(position = linearPoints[dotIndex][0], direction = dir(linearPoints[dotIndex][0], linearPoints[dotIndex + 1][0]), drawMeasuringTape = dotIndex == 0, important=True)
             if dotIndex == 0 and not len(linearPoints) == 1:
                 None
             if dotIndex == len(linearPoints) - 1:
