@@ -297,6 +297,18 @@ def detectClosestPoint(): # function to detect which point on the field is close
             if dist(dot[0], mousePos) < 0.01 and pointSelected == None:
                 pointSelected = index
 
+def drawRobot(position, direction):
+    distance = 12.042 / 144
+    fr = 0.84415
+    fl = 2.29743
+    br = -0.84415
+    bl = -2.29743
+    leftBack = convertCoords([position[0] + distance * cos(bl + direction + pi/2), position[1] + distance * sin(bl + direction + pi/2)], "f")
+    rightBack = convertCoords([position[0] + distance * cos(br + direction + pi/2), position[1] + distance * sin(br + direction + pi/2)], "f")
+    leftFront = convertCoords([position[0] + distance * cos(fl + direction + pi/2), position[1] + distance * sin(fl + direction + pi/2)], "f")
+    rightFront = convertCoords([position[0] + distance * cos(fr + direction + pi/2), position[1] + distance * sin(fr + direction + pi/2)], "f")
+    pygame.draw.polygon(screen, (50, 50, 50), [leftBack, rightBack, rightFront, leftFront], 3)
+
 def generateOutput(): # generates a text file that contains the path data
     if version == "bezier":
         output = open("output.txt", "w")
@@ -445,6 +457,7 @@ while running:
 
     ### Draws Curves ###
     if version == "bezier":
+        drawRobot(position = points[0][1], direction = dir(points[0][1], points[0][2]))
         reverse = initialReverse
         totalCurve = []
         totalThetas = []
