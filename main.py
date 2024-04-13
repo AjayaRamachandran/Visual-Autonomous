@@ -50,7 +50,7 @@ version = "bezier"
 pressingVersionSwitch = False
 pressingExport = False
 
-POINTSPACING = 0.03472222222
+POINTSPACING = 0.5 / 144
 SAMPLINGRESOLUTION = 500
 
 ###### INITIALIZE ######
@@ -357,7 +357,6 @@ def drawRobot(position, direction, drawMeasuringTape, color=[255,255,255], impor
         leftDistanceText = font.render(str(round(1000*dist(horizontalCorner, (horizontalDestination, horizontalCorner[1])) / 900 * 144)/1000) + '"', True, (255, 255, 255))
         screen.blit(leftDistanceText, ((horizontalDestination + horizontalCorner[0])/2 - 20, horizontalCorner[1]))
 
-    
 def generateOutput(): # generates a text file that contains the path data
     if version == "bezier":
         output = open("output.txt", "w")
@@ -370,6 +369,29 @@ def generateOutput(): # generates a text file that contains the path data
                     output.write("")
                 else:
                     output.write(",")
+            lengths.append(len(curve))
+        output.write("};\n")
+        output.write("float arclengths[] = {")
+        trueIndex = 0
+
+        for index1, curve in enumerate(totalCurve): # structure of file is a list of points (the waypoints), then a second list which contains the arclengths between the handles
+            arcLength = 0
+            previousAngle = thetas[trueIndex]
+            for index2, point in enumerate(curve):
+                #currentAngle = thetas[trueIndex]
+                if index2 != len(curve) - 1:
+                    currentAngle = thetas[trueIndex] #+ 1]
+                    angleChange = currentAngle - previousAngle + 0.0000001
+                    arcRadius = dist(curve[index2 - 1], point) / (2 * (sin(fabs(angleChange)))) # gets the euclidean distance between the waypoint and the point before
+                    arcLength += arcRadius * (fabs(angleChange)) # Niko's formula (law of cosines)
+                    previousAngle = currentAngle
+                    print(currentAngle)
+                    trueIndex += 1
+            output.write(f"{arcLength * 144}")
+            if index2 == len(curve) - 1 and index1 == len(totalCurve) - 1:
+                output.write("")
+            else:
+                output.write(",")
             lengths.append(len(curve))
         output.write("};\n")
         output.write("float thetas[] = {")
