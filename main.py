@@ -297,44 +297,35 @@ def detectClosestPoint(): # function to detect which point on the field is close
             if dist(dot[0], mousePos) < 0.01 and pointSelected == None:
                 pointSelected = index
 
+def createPolygon(inputPoints, position, direction):
+    outputPoints = []
+    for point in inputPoints:
+        pointAngle = dir([0,0], point)
+        pointDistance = dist([0,0], point) / 144
+        pointAngle = pointAngle + direction
+        newPoint = [pointDistance * cos(pointAngle - pi/2) + convertCoords(position, 'f')[0], pointDistance * sin(pointAngle - pi/2) + convertCoords(position, 'f')[1]]
+        outputPoints.append(newPoint)
+    return outputPoints
+
 def drawRobot(position, direction, drawMeasuringTape, color=[255,255,255], important=True):
-    distance = 11.87697 / 144
-    frontIntakeDistance = sqrt(12**2 + 3.5**2) / 144
-    backIntakeDistance = sqrt(10**2 + 3.5**2) / 144
-    wallRiderDistance = sqrt(11.5**2 + 5**2) / 144
-    fr = 0.85989
-    fl = 2.28171
-    br = -0.85989
-    bl = -2.28171
-
-    leftBack = convertCoords([position[0] + distance * cos(bl + direction + pi/2), position[1] + distance * sin(bl + direction + pi/2)], "f")
-    rightBack = convertCoords([position[0] + distance * cos(br + direction + pi/2), position[1] + distance * sin(br + direction + pi/2)], "f")
-    leftFront = convertCoords([position[0] + distance * cos(fl + direction + pi/2), position[1] + distance * sin(fl + direction + pi/2)], "f")
-    rightFront = convertCoords([position[0] + distance * cos(fr + direction + pi/2), position[1] + distance * sin(fr + direction + pi/2)], "f")
-    pygame.draw.polygon(screen, color, [leftBack, rightBack, rightFront, leftFront], 1)
-    
+    chassis = [convertCoords(item, 'f') for item in [(6.5, 8),(-6.5, 8),(-6.5, -8),(6.5, -8)]]
+    pygame.draw.polygon(screen, color, createPolygon(chassis, position, direction), 1)
+    wings = [convertCoords(item, 'f') for item in [(8.75, 5.5),(-8.75, 5.5),(-8.75, -1.5),(8.75, -1.5)]]
+    pygame.draw.polygon(screen, color, createPolygon(wings, position, direction), 1)
     if important:
-        bir = atan(10/3.5)
-        bil = pi - bir
-        fir = atan(12/3.5)
-        fil = pi - fir
-        wrr = atan(11.5/5)
-        wrl = pi - wrr
-        wallRiderDiameterPx = 6
-
-        backIntakeRight = convertCoords([position[0] + backIntakeDistance * cos(bir + direction - pi/2), position[1] + backIntakeDistance * sin(bir + direction - pi/2)], "f")
-        backIntakeLeft = convertCoords([position[0] + backIntakeDistance * cos(bil + direction - pi/2), position[1] + backIntakeDistance * sin(bil + direction - pi/2)], "f")
-        intakeRight = convertCoords([position[0] + frontIntakeDistance * cos(fir + direction - pi/2), position[1] + frontIntakeDistance * sin(fir + direction - pi/2)], "f")
-        intakeLeft = convertCoords([position[0] + frontIntakeDistance * cos(fil + direction - pi/2), position[1] + frontIntakeDistance * sin(fil + direction - pi/2)], "f")
-        pygame.draw.polygon(screen, (50, 50, 50), [backIntakeRight, backIntakeLeft, intakeLeft, intakeRight])
-
-        wallRiderRight = convertCoords([position[0] + wallRiderDistance * cos(wrr + direction - pi/2), position[1] + wallRiderDistance * sin(wrr + direction - pi/2)], "f")
-        wallRiderLeft = convertCoords([position[0] + wallRiderDistance * cos(wrl + direction - pi/2), position[1] + wallRiderDistance * sin(wrl + direction - pi/2)], "f")
-        pygame.draw.circle(screen, (170, 0, 255), wallRiderRight, wallRiderDiameterPx, 1)
-        pygame.draw.circle(screen, (170, 0, 255), wallRiderLeft, wallRiderDiameterPx, 1)
+        leftBoatDrive = [convertCoords(item, 'f') for item in [(-6.5, 9),(-6.5, -9)]]
+        pygame.draw.lines(screen, color, False, createPolygon(leftBoatDrive, position, direction), 1)
+        rightBoatDrive = [convertCoords(item, 'f') for item in [(6.5, 9),(6.5, -9)]]
+        pygame.draw.lines(screen, color, False, createPolygon(rightBoatDrive, position, direction), 1)
+        intake = [convertCoords(item, 'f') for item in [(3.5, 10),(-3.5, 10),(-3.5, 12),(3.5, 12)]]
+        pygame.draw.polygon(screen, color, createPolygon(intake, position, direction), 1)
+        rightWallRider = [convertCoords(item, 'f') for item in [(5, 11.5)]]
+        pygame.draw.circle(screen, color, createPolygon(rightWallRider, position, direction)[0], 6, 1)
+        leftWallRider = [convertCoords(item, 'f') for item in [(-5, 11.5)]]
+        pygame.draw.circle(screen, color, createPolygon(leftWallRider, position, direction)[0], 6, 1)
 
     if drawMeasuringTape:
-        fourPoints = [leftBack, rightBack, leftFront, rightFront]
+        fourPoints = [createPolygon(leftBoatDrive, position, direction)[0], createPolygon(leftBoatDrive, position, direction)[1], createPolygon(rightBoatDrive, position, direction)[0], createPolygon(rightBoatDrive, position, direction)[1]]
         for coordinate in fourPoints:
             if position[1] < 0.5:
                 verticalCorner = min(fourPoints, key=lambda x: x[1])
@@ -356,7 +347,7 @@ def drawRobot(position, direction, drawMeasuringTape, color=[255,255,255], impor
         pygame.draw.line(screen, (255,255,0), (horizontalDestination, horizontalCorner[1]), horizontalCorner, 3)
         leftDistanceText = font.render(str(round(1000*dist(horizontalCorner, (horizontalDestination, horizontalCorner[1])) / 900 * 144)/1000) + '"', True, (255, 255, 255))
         screen.blit(leftDistanceText, ((horizontalDestination + horizontalCorner[0])/2 - 20, horizontalCorner[1]))
-
+        
 def generateOutput(): # generates a text file that contains the path data
     if version == "bezier":
         output = open("output.txt", "w")
@@ -373,26 +364,23 @@ def generateOutput(): # generates a text file that contains the path data
         output.write("};\n")
         output.write("float arclengths[] = {")
         trueIndex = 0
-
         for index1, curve in enumerate(totalCurve): # structure of file is a list of points (the waypoints), then a second list which contains the arclengths between the handles
             arcLength = 0
-            previousAngle = thetas[trueIndex]
+            previousAngle = totalThetas[index1][0]
             for index2, point in enumerate(curve):
-                #currentAngle = thetas[trueIndex]
                 if index2 != len(curve) - 1:
-                    currentAngle = thetas[trueIndex] #+ 1]
+                    print(trueIndex)
+                    currentAngle = totalThetas[index1][index2] #+ 1]
                     angleChange = currentAngle - previousAngle + 0.0000001
                     arcRadius = dist(curve[index2 - 1], point) / (2 * (sin(fabs(angleChange)))) # gets the euclidean distance between the waypoint and the point before
                     arcLength += arcRadius * (fabs(angleChange)) # Niko's formula (law of cosines)
                     previousAngle = currentAngle
-                    print(currentAngle)
                     trueIndex += 1
             output.write(f"{arcLength * 144}")
             if index2 == len(curve) - 1 and index1 == len(totalCurve) - 1:
                 output.write("")
             else:
                 output.write(",")
-            lengths.append(len(curve))
         output.write("};\n")
         output.write("float thetas[] = {")
         for index1, curve in enumerate(totalThetas): # structure of file is a list of points (the waypoints), then a second list which contains the arclengths between the handles
