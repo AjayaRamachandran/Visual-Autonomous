@@ -376,7 +376,7 @@ def generateOutput(): # generates a text file that contains the path data
                     arcLength += arcRadius * (fabs(angleChange)) # Niko's formula (law of cosines)
                     previousAngle = currentAngle
                     trueIndex += 1
-            output.write(f"{arcLength * 144}")
+            output.write(f"{np.float16(arcLength * 144)}")
             if index2 == len(curve) - 1 and index1 == len(totalCurve) - 1:
                 output.write("")
             else:
