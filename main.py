@@ -136,6 +136,19 @@ addReversePointButton = gui.Button(
     fontSize=26
     )
 
+addPIDArcButton = gui.Button(
+    name="pid_arc_button",
+    width=510,
+    height=60,
+    cornerRadius = 15,
+    color=[100, 120, 100],
+    text="Add PID Arc",
+    x=1175,
+    y=400,
+    scale=1,
+    fontSize=26
+    )
+
 addPTButton = gui.Button(
     name="passthrough_button",
     width=510,
@@ -405,56 +418,62 @@ def generateOutput(): # generates a text file that contains the path data
         for line, pair in enumerate(pointInfos):
             if linearPoints[line][1] == "r":
                 reversing = not reversing
-            # TURNING COMMAND
-            needToEnter = False
-            if line != 0:
-                if linearPoints[line][1] == "r":
-                    newDir = np.float32(pair[0] + 180 - int(pair[0] + 180 >= 180)* 360)
-                    output.write("PIDcommand('t', " + str(newDir) + "); ")
-                else:
-                    output.write("PIDcommand('t', " + str(int(pair[0])) + "); ")
-                needToEnter = True
-            # TURNING COMMENTS
-            coords = linearPoints[line][0]
-            nextCoords = linearPoints[line + 1][0]
-            #print(degrees(dir(coords, nextCoords)))
-            if abs(degrees(dir(coords, (0, 0.5))) - degrees(dir(coords, nextCoords))) < 30 and coords[0] < 0.5:
-                output.write("// Bot points toward blue goal")
-                needToEnter = True
-            if abs(degrees(dir(coords, (1, 0.5))) - degrees(dir(coords, nextCoords))) < 30 and coords[0] > 0.5:
-                output.write("// Bot points toward red goal")
-                needToEnter = True
-            if (-70 < degrees(dir(coords, nextCoords)) < 70) and coords[0] < 0.5 and 0.15 < nextCoords[1] < 0.85:
-                output.write("// Bot points toward center pipe from blue goal side")
-                needToEnter = True
-            if (110 < degrees(dir(coords, nextCoords)) < 180 or -180 < degrees(dir(coords, nextCoords)) < -110) and coords[0] > 0.5 and 0.15 < nextCoords[1] < 0.85:
-                output.write("// Bot points toward center pipe from red goal side")
-                needToEnter = True
-            if needToEnter:
-                output.write("\n")
 
-            # LATERAL MOVEMENT COMMENTS
-            if 0 < coords[0] < 0.3 and 0.15 < coords[1] < 0.85:
-                output.write("// Bot starts near blue goal\n")
-            if 0.7 < coords[0] < 1 and 0.15 < coords[1] < 0.85:
-                output.write("// Bot starts near red goal\n")
-            if 0 < coords[0] < 0.15 and (0 < coords[1] < 0.15 or 0 < coords[1] > 0.85):
-                output.write("// Bot starts near red match load zone\n")
-            if 0 < coords[0] > 0.85 and (0 < coords[1] < 0.15 or 0 < coords[1] > 0.85):
-                output.write("// Bot starts near blue match load zone\n")
-            # LATERAL COMMAND
-            output.write("PIDcommand('l', " + str(np.float32(pair[1] * 144 * ((int(not reversing) - 0.5) * 2))) + "); ")
-            needToEnter = True
-            # LATERAL COMMENTS
-            if line != 0:
-                if coords[0] < 0.5 and nextCoords[0] >= 0.5:
-                    output.write("// Bot crosses underpass from blue goal side to red goal side\n")
-                    needToEnter = False
-                if coords[0] > 0.5 and nextCoords[0] <= 0.5:
-                    output.write("// Bot crosses underpass from red goal side to blue goal side\n")
-                    needToEnter = False
-            if needToEnter:
-                output.write("\n")
+            if linearPoints[line][1] == "p":
+                turnAmount = dir(linearPoints[line][0], linearPoints[line + 1][0]) - dir(linearPoints[line-1][0], linearPoints[line][0])
+                moveAmount = dist(linearPoints[line-1][0], linearPoints[line][0])
+                output.write("PIDArc(" + str(np.float16(turnAmount * 180 / pi)) + "," + str(np.float16(moveAmount * 144)) + "); ")
+            else:
+                # TURNING COMMAND
+                needToEnter = False
+                if line != 0:
+                    if linearPoints[line][1] == "r":
+                        newDir = np.float32(pair[0] + 180 - int(pair[0] + 180 >= 180)* 360)
+                        output.write("PIDcommand('t', " + str(newDir) + "); ")
+                    else:
+                        output.write("PIDcommand('t', " + str(int(pair[0])) + "); ")
+                    needToEnter = True
+                # TURNING COMMENTS
+                coords = linearPoints[line][0]
+                nextCoords = linearPoints[line + 1][0]
+                #print(degrees(dir(coords, nextCoords)))
+                if abs(degrees(dir(coords, (0, 0.5))) - degrees(dir(coords, nextCoords))) < 30 and coords[0] < 0.5:
+                    output.write("// Bot points toward blue goal")
+                    needToEnter = True
+                if abs(degrees(dir(coords, (1, 0.5))) - degrees(dir(coords, nextCoords))) < 30 and coords[0] > 0.5:
+                    output.write("// Bot points toward red goal")
+                    needToEnter = True
+                if (-70 < degrees(dir(coords, nextCoords)) < 70) and coords[0] < 0.5 and 0.15 < nextCoords[1] < 0.85:
+                    output.write("// Bot points toward center pipe from blue goal side")
+                    needToEnter = True
+                if (110 < degrees(dir(coords, nextCoords)) < 180 or -180 < degrees(dir(coords, nextCoords)) < -110) and coords[0] > 0.5 and 0.15 < nextCoords[1] < 0.85:
+                    output.write("// Bot points toward center pipe from red goal side")
+                    needToEnter = True
+                if needToEnter:
+                    output.write("\n")
+
+                # LATERAL MOVEMENT COMMENTS
+                if 0 < coords[0] < 0.3 and 0.15 < coords[1] < 0.85:
+                    output.write("// Bot starts near blue goal\n")
+                if 0.7 < coords[0] < 1 and 0.15 < coords[1] < 0.85:
+                    output.write("// Bot starts near red goal\n")
+                if 0 < coords[0] < 0.15 and (0 < coords[1] < 0.15 or 0 < coords[1] > 0.85):
+                    output.write("// Bot starts near red match load zone\n")
+                if 0 < coords[0] > 0.85 and (0 < coords[1] < 0.15 or 0 < coords[1] > 0.85):
+                    output.write("// Bot starts near blue match load zone\n")
+                # LATERAL COMMAND
+                output.write("PIDcommand('l', " + str(np.float32(pair[1] * 144 * ((int(not reversing) - 0.5) * 2))) + "); ")
+                needToEnter = True
+                # LATERAL COMMENTS
+                if line != 0:
+                    if coords[0] < 0.5 and nextCoords[0] >= 0.5:
+                        output.write("// Bot crosses underpass from blue goal side to red goal side\n")
+                        needToEnter = False
+                    if coords[0] > 0.5 and nextCoords[0] <= 0.5:
+                        output.write("// Bot crosses underpass from red goal side to blue goal side\n")
+                        needToEnter = False
+                if needToEnter:
+                    output.write("\n")
 
         output.close()
         io.showOutput("output.txt") # shows the text file to the screen using subprocess
@@ -506,6 +525,7 @@ while running:
         bezierMode.draw(screen)
         addPointButton.draw(screen)
         addReversePointButton.draw(screen)
+        addPIDArcButton.draw(screen)
     elif version == "bezier":
         legacyMode.draw(screen)
         addPTButton.draw(screen)
@@ -655,14 +675,36 @@ while running:
                 pointInfos.append([angle, dist(dot[0], linearPoints[dotIndex + 1][0])])
             if dot[1] == "f":
                 pygame.draw.circle(screen, [255, 255, 255], convertCoords(dot[0], "f"), 5)
+            elif dot[1] == "p":
+                pygame.draw.circle(screen, [0, 255, 0], convertCoords(dot[0], "p"), 5)
             else:
                 pygame.draw.circle(screen, [255, 0, 0], convertCoords(dot[0], "f"), 5)
                 reverse = not reverse
             if dotIndex != len(linearPoints) - 1:
-                if reverse:
-                    pygame.draw.aaline(screen, (80, 80, 80), convertCoords(dot[0], "f"), convertCoords(linearPoints[dotIndex + 1][0], "f"))
+                if linearPoints[dotIndex][1] == "p":
+                    pygame.draw.circle(screen, [0, 255, 0], convertCoords(dot[0], "f"), 5)
+                    color = [255 - 175 * reverse, 255 - 175 * reverse, 255 - 175 * reverse]
+                    angleChange = dir(linearPoints[dotIndex][0], linearPoints[dotIndex + 1][0]) - dir(linearPoints[dotIndex - 1][0], linearPoints[dotIndex][0])
+                    if angleChange > pi:
+                        angleChange -= 2 * pi
+                    if angleChange < -pi:
+                        angleChange += 2 * pi
+                    agentPosition = linearPoints[dotIndex][0]
+                    agentAngle = dir(linearPoints[dotIndex - 1][0], linearPoints[dotIndex][0])
+                    for turnIter in range(abs(round(angleChange * 10))):
+                        agentPosition = [agentPosition[0] + cos(agentAngle) * 0.01, agentPosition[1] + sin(agentAngle) * 0.01]
+                        if angleChange > 0:
+                            agentAngle += 0.1
+                        else:
+                            agentAngle -= 0.1
+                        pygame.draw.circle(screen, color, convertCoords(agentPosition, "f"), 2)
+                    pygame.draw.aaline(screen, color, convertCoords(agentPosition, "f"), convertCoords(linearPoints[dotIndex + 1][0], "f"))
+
                 else:
-                    pygame.draw.aaline(screen, (255, 255, 255), convertCoords(dot[0], "f"), convertCoords(linearPoints[dotIndex + 1][0], "f"))
+                    if reverse:
+                        pygame.draw.aaline(screen, (80, 80, 80), convertCoords(dot[0], "f"), convertCoords(linearPoints[dotIndex + 1][0], "f"))
+                    else:
+                        pygame.draw.aaline(screen, (255, 255, 255), convertCoords(dot[0], "f"), convertCoords(linearPoints[dotIndex + 1][0], "f"))
             if selector == "edit":
                 if pointSelected == dotIndex:
                     dot[0] = convertCoords(pygame.mouse.get_pos(), "b")
@@ -683,6 +725,9 @@ while running:
     elif addReversePointButton.isClicked() and version == "legacy":
         if not linearPoints[len(linearPoints) - 1][0] == [0.5,0.5]:
             linearPoints.append([[0.5,0.5], "r"])
+    elif addPIDArcButton.isClicked() and version == "legacy" and len(linearPoints) != 1:
+        if not linearPoints[len(linearPoints) - 1][0] == [0.5,0.5]:
+            linearPoints.append([[0.5,0.5], "p"])
     elif addPTButton.isClicked() and version == "bezier":
         if not points[len(points) - 1][0] == [0.4,0.4]:
             points.append([[0.4,0.4],[0.5,0.5],[0.6,0.6], "passthrough"])
